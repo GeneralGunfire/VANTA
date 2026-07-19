@@ -1,0 +1,167 @@
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #1a1a1a;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  border-bottom: 1px solid #e2e2e2;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.tab {
+  padding: 8px 14px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.tab.active {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: #1a1a1a;
+}
+
+.view h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+.text-entry-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 480px;
+}
+
+.text-entry-form textarea {
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  resize: vertical;
+}
+
+.text-entry-form button {
+  align-self: flex-start;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 6px;
+  background: #1a1a1a;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.text-entry-form button:disabled {
+  background: #999;
+  cursor: not-allowed;
+}
+
+.parse-result {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: #f4f7f4;
+  border: 1px solid #d7e5d7;
+  border-radius: 6px;
+  max-width: 480px;
+}
+
+.parse-result-title {
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.parse-result ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.needs-review-tag {
+  color: #b5720a;
+  font-weight: 600;
+}
+
+.error-text {
+  color: #c0392b;
+}
+
+.upload-progress {
+  margin-top: 12px;
+  color: #333;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.ledger-table th,
+.ledger-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid #eee;
+  white-space: nowrap;
+}
+
+.ledger-table th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.raw-input-cell {
+  white-space: normal;
+  max-width: 320px;
+}
+
+.needs-review-row {
+  border-left: 3px solid #e0a336;
+  background: #fffaf0;
+}
+
+.badge {
+  display: inline-block;
+  background: #e0a336;
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.expand-btn {
+  background: none;
+  border: none;
+  color: #1a6cd6;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0;
+  margin-left: 4px;
+}
