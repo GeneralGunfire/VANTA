@@ -21,8 +21,19 @@ Return STRICT JSON ONLY. No preamble, no explanation, no markdown code fences. J
 Rules:
 - "in" means money received (e.g. a sale). "out" means money spent (e.g. buying stock, paying rent).
 - category must be exactly one of the listed values. Use "Other" if nothing fits.
-- If the input is ambiguous, incomplete, or doesn't clearly look like a transaction, still return your best guess for every field, but set confidence low (below 0.5).
-- confidence should reflect how certain you are about the amount, direction, and category together.
+- If the input is ambiguous, incomplete, or doesn't clearly look like a transaction, still return your best guess for every field, but set confidence low (at or below 0.2). Do not invent a plausible-sounding amount, direction, or category just because the fields require a value — a low-confidence best guess is expected and correct for this case.
+- Base confidence strictly on these three checkable criteria, not on overall impression:
+  (a) Is there a clear, explicit monetary amount in the input?
+  (b) Is the direction of money flow (received vs. spent) unambiguous?
+  (c) Is this plausibly a business transaction at all (an exchange of money for goods, services, rent, wages, transport, etc.), as opposed to unrelated data such as a log entry, timestamp record, name list, or system message?
+  If any of (a), (b), or (c) is not clearly satisfied, confidence must be at or below 0.2. Only score above 0.7 when all three are clearly satisfied.
+- Examples of LOW confidence (at or below 0.2) input — no clear amount, no business context, or both:
+  - "User Name: Mila Murphy, Log in: 08:02, Log out: 17:41" (a login/logout log, no amount, no transaction)
+  - "System backup completed at 02:00, status: OK" (system message, no amount, no business context)
+  - "Jane, Peter, Sam — attendance list for Monday" (a name list, no amount, no transaction)
+- Examples of HIGH confidence (above 0.7) input — explicit amount, clear direction, clear business context:
+  - "Sold 3 bags of maize meal for R450 cash" (clear amount, clear "in", clear Sales context)
+  - "Paid R1200 rent for the shop this month" (clear amount, clear "out", clear Rent context)
 - Never return anything except the JSON object.`;
 
 function stripCodeFences(text: string): string {
@@ -31,19 +42,38 @@ function stripCodeFences(text: string): string {
   return fenceMatch ? fenceMatch[1] : trimmed;
 }
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
     const { raw_input, source } = await req.json();
 
     if (!raw_input || typeof raw_input !== "string") {
-      return new Response(JSON.stringify({ error: "raw_input is required" }), { status: 400 });
+      return new Response(JSON.stringify({ error: "raw_input is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
     if (source !== "text" && source !== "excel") {
-      return new Response(JSON.stringify({ error: "source must be 'text' or 'excel'" }), { status: 400 });
+      return new Response(JSON.stringify({ error: "source must be 'text' or 'excel'" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -64,7 +94,10 @@ Deno.serve(async (req: Request) => {
 
     if (!groqRes.ok) {
       const errText = await groqRes.text();
-      return new Response(JSON.stringify({ error: `Groq API error: ${errText}` }), { status: 502 });
+      return new Response(JSON.stringify({ error: `Groq API error: ${errText}` }), {
+        status: 502,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const groqData = await groqRes.json();
@@ -115,14 +148,20 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response(JSON.stringify(data), {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500 });
+    return new Response(JSON.stringify({ error: String(err) }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
