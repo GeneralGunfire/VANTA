@@ -4,7 +4,7 @@ import { formatRands } from '../lib/money'
 export function Money({ amount, direction }: { amount: number; direction?: 'in' | 'out' }) {
   const sign = direction === 'out' ? '−' : direction === 'in' ? '+' : ''
   return (
-    <span className={`money ${direction ?? ''}`}>
+    <span className="money">
       {sign}
       {formatRands(amount)}
     </span>
@@ -20,28 +20,16 @@ export function PageHeader({ title, sub }: { title: string; sub?: string }) {
   )
 }
 
-export function Toggle({ on, onChange, label }: { on: boolean; onChange: () => void; label?: string }) {
+/** Needs-review indicator: icon + heavier border, deliberately not a second color. */
+export function ReviewFlag() {
   return (
-    <button
-      type="button"
-      className={`toggle ${on ? 'on' : ''}`}
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      onClick={onChange}
-    />
+    <span className="pill flagged" title="Needs review">
+      ⚑ Needs review
+    </span>
   )
 }
 
-export function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string
-  hint?: string
-  children: ReactNode
-}) {
+export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <div className="field">
       <label>{label}</label>

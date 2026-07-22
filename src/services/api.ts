@@ -1,24 +1,25 @@
-// Data-access boundary. Every screen talks to this interface, never to storage
-// directly. Swapping MockDataService for a SupabaseDataService (same interface,
-// calls the Supabase client / edge functions) is the only change needed to go live.
-import type { Asset, BusinessProfile, ComplianceItem, Invoice, Transaction } from '../types'
-import { mockAssets, mockCompliance, mockInvoices, mockProfile, mockTransactions } from '../data/mock'
+// Data-access boundary. Screens call this interface only, never storage
+// directly. Swapping MockDataService for a SupabaseDataService (calling the
+// parse-transaction Edge Function and real tables) is a one-file change.
+import type { CorrectionRecord, QuickActionId, Transaction } from '../types'
+import { mockCorrections, mockTransactions } from '../data/mock'
 import { todayISO, uid } from '../lib/money'
 
 export interface ParsedTransaction {
-  parsed: Omit<Transaction, 'id'> | null
+  parsed: Omit<Transaction, 'id' | 'needsReview'> | null
   reply: string
 }
 
 export interface DataService {
   fetchTransactions(): Promise<Transaction[]>
-  fetchAssets(): Promise<Asset[]>
-  fetchInvoices(): Promise<Invoice[]>
-  fetchCompliance(): Promise<ComplianceItem[]>
-  fetchProfile(): Promise<BusinessProfile>
-  /** In production this calls the parse-transaction edge function (Groq). */
+  fetchCorrections(): Promise<CorrectionRecord[]>
+  /** In production this calls the parse-transaction edge function (Groq, Llama 3.1 8B Instant). */
   parseMessage(text: string): Promise<ParsedTransaction>
+  /** Placeholder — not yet wired to real ledger aggregation. Never fabricates a number. */
+  runQuickAction(id: QuickActionId): Promise<string>
 }
+
+const NEEDS_REVIEW_THRESHOLD = 0.7
 
 const CATEGORY_HINTS: Array<[RegExp, string]> = [
   [/sold|sale|order|customer|paid me/i, 'Sales'],
@@ -29,7 +30,7 @@ const CATEGORY_HINTS: Array<[RegExp, string]> = [
   [/wage|salary|helper|paid \w+ for help/i, 'Wages'],
 ]
 
-/** Local stand-in for the AI parsing pipeline: finds an amount and guesses direction/category. */
+/** Local stand-in for the parse-transaction Edge Function's parsing + scoring. */
 function localParse(text: string): ParsedTransaction {
   const amountMatch = text.match(/r\s?(\d[\d\s,]*(?:\.\d{1,2})?)/i) ?? text.match(/(\d[\d\s,]*(?:\.\d{1,2})?)/)
   if (!amountMatch) {
@@ -43,7 +44,9 @@ function localParse(text: string): ParsedTransaction {
   const isOut = /bought|paid|spent|expense|cost|owe/i.test(text)
   const direction = isOut ? 'out' : 'in'
   const category = CATEGORY_HINTS.find(([re]) => re.test(text))?.[1] ?? (isOut ? 'Other expense' : 'Sales')
-  const confident = /r\s?\d/i.test(text)
+  const hasCurrencyMark = /r\s?\d/i.test(text)
+  const hasCategoryHint = CATEGORY_HINTS.some(([re]) => re.test(text))
+  const confidenceScore = hasCurrencyMark && hasCategoryHint ? 0.92 : hasCurrencyMark ? 0.75 : 0.5
   return {
     parsed: {
       date: todayISO(),
@@ -52,7 +55,7 @@ function localParse(text: string): ParsedTransaction {
       category,
       description: text.trim(),
       source: 'chat',
-      confidence: confident ? 'high' : 'medium',
+      confidenceScore,
     },
     reply: '',
   }
@@ -65,25 +68,19 @@ export class MockDataService implements DataService {
     await delay(150)
     return [...mockTransactions]
   }
-  async fetchAssets() {
+  async fetchCorrections() {
     await delay(150)
-    return [...mockAssets]
-  }
-  async fetchInvoices() {
-    await delay(150)
-    return [...mockInvoices]
-  }
-  async fetchCompliance() {
-    await delay(150)
-    return [...mockCompliance]
-  }
-  async fetchProfile() {
-    await delay(150)
-    return { ...mockProfile }
+    return [...mockCorrections]
   }
   async parseMessage(text: string) {
     await delay(600)
     return localParse(text)
+  }
+  async runQuickAction(_id: QuickActionId): Promise<string> {
+    await delay(300)
+    // Honest placeholder: this must never invent a number. Real aggregation
+    // logic against the ledger is an open item, not built yet.
+    return "This isn't wired up to your real numbers yet — coming soon."
   }
 }
 
@@ -92,3 +89,5 @@ export const api: DataService = new MockDataService()
 export function newId(prefix: string): string {
   return uid(prefix)
 }
+
+export { NEEDS_REVIEW_THRESHOLD }

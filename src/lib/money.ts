@@ -1,4 +1,3 @@
-/** Format a rand amount for display, e.g. 4200 -> "R4,200" ; 4200.5 -> "R4,200.50" */
 export function formatRands(amount: number): string {
   const hasCents = Math.round(amount * 100) % 100 !== 0
   return (
@@ -15,8 +14,11 @@ export function todayISO(): string {
 }
 
 export function friendlyDate(iso: string): string {
-  const d = new Date(iso + 'T00:00:00')
-  return d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso + 'T00:00:00').toLocaleDateString('en-ZA', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
 }
 
 let counter = 0

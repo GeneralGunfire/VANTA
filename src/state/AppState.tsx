@@ -1,53 +1,31 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type {
-  Asset,
-  BusinessProfile,
-  ChatMessage,
-  ComplianceItem,
-  Invoice,
-  Transaction,
-} from '../types'
-import { api, newId } from '../services/api'
+import type { ChatMessage, CorrectionRecord, Language, Transaction } from '../types'
+import { api, newId, NEEDS_REVIEW_THRESHOLD } from '../services/api'
 
 interface AppState {
   signedIn: boolean
-  onboarded: boolean
   loading: boolean
-  profile: BusinessProfile
+  language: Language
   transactions: Transaction[]
-  assets: Asset[]
-  invoices: Invoice[]
-  compliance: ComplianceItem[]
+  corrections: CorrectionRecord[]
   messages: ChatMessage[]
+  needsReviewCount: number
 
   signIn: () => void
   signOut: () => void
-  completeOnboarding: (p: Partial<BusinessProfile>) => void
-  updateProfile: (p: Partial<BusinessProfile>) => void
-  addTransaction: (t: Omit<Transaction, 'id'>) => void
-  updateTransaction: (id: string, patch: Partial<Transaction>) => void
-  deleteTransaction: (id: string) => void
-  addAsset: (a: Omit<Asset, 'id'>) => void
-  deleteAsset: (id: string) => void
-  addInvoice: (i: Omit<Invoice, 'id'>) => void
-  setInvoiceStatus: (id: string, status: Invoice['status']) => void
-  deleteInvoice: (id: string) => void
-  toggleCompliance: (id: string) => void
+  setLanguage: (l: Language) => void
+
   sendMessage: (text: string) => Promise<void>
   confirmPending: (messageId: string) => void
   dismissPending: (messageId: string) => void
+
+  /** Not yet persisted — updates local state only. See services/api.ts. */
+  updateTransaction: (id: string, patch: Partial<Transaction>) => void
+  /** Not yet persisted — updates local state only. See services/api.ts. */
+  deleteTransaction: (id: string) => void
 }
 
 const Ctx = createContext<AppState | null>(null)
-
-const emptyProfile: BusinessProfile = {
-  ownerName: '',
-  businessName: '',
-  businessType: '',
-  phone: '',
-  location: '',
-  whatSells: '',
-}
 
 const WELCOME: ChatMessage = {
   id: 'welcome',
@@ -55,32 +33,24 @@ const WELCOME: ChatMessage = {
   text: "Hi! Tell me about a sale or expense in your own words — for example \"sold 20 loaves R400 cash\" — and I'll add it to your books.",
 }
 
+function fmt(n: number): string {
+  return 'R' + n.toLocaleString('en-ZA')
+}
+
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [signedIn, setSignedIn] = useState(false)
-  const [onboarded, setOnboarded] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [profile, setProfile] = useState<BusinessProfile>(emptyProfile)
+  const [language, setLanguage] = useState<Language>('en')
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [assets, setAssets] = useState<Asset[]>([])
-  const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [compliance, setCompliance] = useState<ComplianceItem[]>([])
+  const [corrections, setCorrections] = useState<CorrectionRecord[]>([])
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME])
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([
-      api.fetchTransactions(),
-      api.fetchAssets(),
-      api.fetchInvoices(),
-      api.fetchCompliance(),
-      api.fetchProfile(),
-    ]).then(([t, a, i, c, p]) => {
+    Promise.all([api.fetchTransactions(), api.fetchCorrections()]).then(([t, c]) => {
       if (cancelled) return
       setTransactions(t)
-      setAssets(a)
-      setInvoices(i)
-      setCompliance(c)
-      setProfile(p)
+      setCorrections(c)
       setLoading(false)
     })
     return () => {
@@ -88,44 +58,21 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const needsReviewCount = useMemo(() => transactions.filter((t) => t.needsReview).length, [transactions])
+
   const value = useMemo<AppState>(
     () => ({
       signedIn,
-      onboarded,
       loading,
-      profile,
+      language,
       transactions,
-      assets,
-      invoices,
-      compliance,
+      corrections,
       messages,
+      needsReviewCount,
 
       signIn: () => setSignedIn(true),
-      signOut: () => {
-        setSignedIn(false)
-        setOnboarded(false)
-      },
-      completeOnboarding: (p) => {
-        setProfile((prev) => ({ ...prev, ...p }))
-        setOnboarded(true)
-      },
-      updateProfile: (p) => setProfile((prev) => ({ ...prev, ...p })),
-
-      addTransaction: (t) => setTransactions((prev) => [{ ...t, id: newId('t') }, ...prev]),
-      updateTransaction: (id, patch) =>
-        setTransactions((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t))),
-      deleteTransaction: (id) => setTransactions((prev) => prev.filter((t) => t.id !== id)),
-
-      addAsset: (a) => setAssets((prev) => [{ ...a, id: newId('a') }, ...prev]),
-      deleteAsset: (id) => setAssets((prev) => prev.filter((a) => a.id !== id)),
-
-      addInvoice: (i) => setInvoices((prev) => [{ ...i, id: newId('i') }, ...prev]),
-      setInvoiceStatus: (id, status) =>
-        setInvoices((prev) => prev.map((i) => (i.id === id ? { ...i, status } : i))),
-      deleteInvoice: (id) => setInvoices((prev) => prev.filter((i) => i.id !== id)),
-
-      toggleCompliance: (id) =>
-        setCompliance((prev) => prev.map((c) => (c.id === id ? { ...c, done: !c.done } : c))),
+      signOut: () => setSignedIn(false),
+      setLanguage,
 
       sendMessage: async (text) => {
         const userMsg: ChatMessage = { id: newId('m'), role: 'user', text }
@@ -150,29 +97,36 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         }
       },
       confirmPending: (messageId) => {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === messageId ? { ...m, confirmed: true } : m)),
-        )
-        const msg = messages.find((m) => m.id === messageId)
-        if (msg?.pendingTransaction) {
-          setTransactions((prev) => [{ ...msg.pendingTransaction!, id: newId('t') }, ...prev])
-        }
+        setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, confirmed: true } : m)))
+        setMessages((current) => {
+          const msg = current.find((m) => m.id === messageId)
+          if (msg?.pendingTransaction) {
+            const p = msg.pendingTransaction
+            setTransactions((prevT) => [
+              { ...p, id: newId('t'), needsReview: p.confidenceScore < NEEDS_REVIEW_THRESHOLD },
+              ...prevT,
+            ])
+          }
+          return current
+        })
       },
       dismissPending: (messageId) =>
         setMessages((prev) =>
           prev.map((m) =>
-            m.id === messageId ? { ...m, pendingTransaction: undefined, text: 'No problem — I left that out. Tell me again in your own words.' } : m,
+            m.id === messageId
+              ? { ...m, pendingTransaction: undefined, text: 'No problem — tell me again in your own words.' }
+              : m,
           ),
         ),
+
+      updateTransaction: (id, patch) =>
+        setTransactions((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t))),
+      deleteTransaction: (id) => setTransactions((prev) => prev.filter((t) => t.id !== id)),
     }),
-    [signedIn, onboarded, loading, profile, transactions, assets, invoices, compliance, messages],
+    [signedIn, loading, language, transactions, corrections, messages, needsReviewCount],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
-}
-
-function fmt(n: number): string {
-  return 'R' + n.toLocaleString('en-ZA')
 }
 
 export function useApp(): AppState {

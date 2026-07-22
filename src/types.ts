@@ -1,4 +1,5 @@
 export type Direction = 'in' | 'out'
+export type Confidence = 'high' | 'medium' | 'low'
 
 export interface Transaction {
   id: string
@@ -8,45 +9,17 @@ export interface Transaction {
   category: string
   description: string
   source: 'chat' | 'upload' | 'manual'
-  confidence: 'high' | 'medium' | 'low'
-  needsReview?: boolean
+  confidenceScore: number // 0..1, mirrors the parse-transaction Edge Function's score
+  needsReview: boolean // true when confidenceScore < 0.7
 }
 
-export interface Asset {
+export interface CorrectionRecord {
   id: string
-  name: string
-  purchaseDate: string
-  cost: number
-  note?: string
-}
-
-export type InvoiceStatus = 'unpaid' | 'paid' | 'overdue'
-
-export interface Invoice {
-  id: string
-  /** 'owed_to_me' = customer owes the business; 'i_owe' = business owes a supplier */
-  kind: 'owed_to_me' | 'i_owe'
-  who: string
-  amount: number
-  dueDate: string
-  status: InvoiceStatus
-  note?: string
-}
-
-export interface ComplianceItem {
-  id: string
-  title: string
-  body: string
-  done: boolean
-}
-
-export interface BusinessProfile {
-  ownerName: string
-  businessName: string
-  businessType: string
-  phone: string
-  location: string
-  whatSells: string
+  transactionId: string
+  field: 'category' | 'amount' | 'direction' | 'description'
+  from: string
+  to: string
+  date: string
 }
 
 export type ChatRole = 'user' | 'vanta'
@@ -55,7 +28,15 @@ export interface ChatMessage {
   id: string
   role: ChatRole
   text: string
-  /** present when Vanta parsed the user's text into a transaction awaiting confirmation */
-  pendingTransaction?: Omit<Transaction, 'id'>
+  pendingTransaction?: Omit<Transaction, 'id' | 'needsReview'>
   confirmed?: boolean
 }
+
+export type QuickActionId = 'summary' | 'top_category' | 'needs_review' | 'money_owed'
+
+export interface QuickAction {
+  id: QuickActionId
+  label: string
+}
+
+export type Language = 'en' | 'zu' | 'af'

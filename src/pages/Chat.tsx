@@ -1,16 +1,22 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useApp } from '../state/AppState'
-import { Money } from '../components/ui'
+import { Money, ReviewFlag } from '../components/ui'
+import QuickActions from '../components/chat/QuickActions'
+import { api, newId } from '../services/api'
+import type { ChatMessage, QuickActionId } from '../types'
 
 export default function Chat() {
   const { messages, sendMessage, confirmPending, dismissPending } = useApp()
+  const [localMessages, setLocalMessages] = useState<ChatMessage[]>([])
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  const allMessages = [...messages, ...localMessages]
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
-  }, [messages])
+  }, [messages, localMessages])
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -22,10 +28,17 @@ export default function Chat() {
     setSending(false)
   }
 
+  async function onQuickAction(id: QuickActionId) {
+    setSending(true)
+    const reply = await api.runQuickAction(id)
+    setLocalMessages((prev) => [...prev, { id: newId('qa'), role: 'vanta', text: reply }])
+    setSending(false)
+  }
+
   return (
     <div className="chat-wrap">
       <div className="chat-scroll" ref={scrollRef}>
-        {messages.map((m) => (
+        {allMessages.map((m) => (
           <div key={m.id}>
             {m.role === 'user' ? (
               <div className="bubble user">{m.text}</div>
@@ -38,10 +51,11 @@ export default function Chat() {
                       <span className="pill accent">{m.pendingTransaction.category}</span>
                       <Money amount={m.pendingTransaction.amount} direction={m.pendingTransaction.direction} />
                     </div>
-                    <p className="muted" style={{ fontSize: 14, marginBottom: 12 }}>
+                    <p className="muted" style={{ fontSize: 14, marginBottom: 8 }}>
                       {m.pendingTransaction.description}
                     </p>
-                    <div className="row">
+                    {m.pendingTransaction.confidenceScore < 0.7 && <ReviewFlag />}
+                    <div className="row" style={{ marginTop: 12 }}>
                       <button className="btn btn-primary btn-sm" onClick={() => confirmPending(m.id)}>
                         Confirm
                       </button>
@@ -52,7 +66,7 @@ export default function Chat() {
                   </div>
                 )}
                 {m.confirmed && (
-                  <div className="pill ok" style={{ marginLeft: 4 }}>
+                  <div className="pill" style={{ marginLeft: 4 }}>
                     Added to your ledger
                   </div>
                 )}
@@ -66,6 +80,8 @@ export default function Chat() {
           </div>
         )}
       </div>
+
+      <QuickActions onSelect={onQuickAction} disabled={sending} />
 
       <form className="chat-input" onSubmit={onSubmit}>
         <input

@@ -7,15 +7,19 @@ const FAQS = [
   },
   {
     q: 'What if Vanta gets something wrong?',
-    a: 'Tap "Not quite" on the confirmation card and describe it again. Vanta remembers corrections so it improves for your business over time.',
+    a: 'Tap "Not quite" on the confirmation card and describe it again. Corrections you make are logged in Correction history and help Vanta improve for your business.',
   },
   {
-    q: 'What does "needs review" mean in my ledger?',
+    q: 'What does the flag next to a transaction mean?',
     a: 'It means Vanta wasn\'t fully confident about a category or amount — usually from an uploaded photo or file. Open the entry to confirm or fix it.',
   },
   {
+    q: 'Can I upload a spreadsheet or photo instead of typing?',
+    a: 'Excel/CSV upload is supported today. Photo upload (e.g. of a receipt or WhatsApp message) is planned but not available yet.',
+  },
+  {
     q: 'Do I need to register my business to use Vanta?',
-    a: 'No. Vanta works for informal, unregistered businesses. The Compliance corner tells you what applies as you grow.',
+    a: 'No. Vanta is built for informal, unregistered businesses too.',
   },
   {
     q: 'Is my data safe?',
