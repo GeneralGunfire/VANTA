@@ -1,36 +1,32 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
-import { useApp } from './state/AppState'
-import Shell from './components/Shell'
-import Landing from './pages/Landing'
-import SignIn from './pages/SignIn'
-import Chat from './pages/Chat'
-import Ledger from './pages/Ledger'
-import Corrections from './pages/Corrections'
-import Help from './pages/Help'
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import ScrollToTop from './components/ScrollToTop';
+import LandingPage from './pages/LandingPage';
+import AuthPage from './pages/AuthPage';
+import AppLayout from './layouts/AppLayout';
+import ChatPage from './pages/ChatPage';
+import LedgerPage from './pages/LedgerPage';
 
 export default function App() {
-  const { signedIn } = useApp()
-
-  if (!signedIn) {
-    return (
+  return (
+    <BrowserRouter>
+      <ScrollToTop />
       <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/signin" element={<SignIn />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/auth" element={<AuthPage />} />
+        
+        <Route path="/app" element={<AppLayout />}>
+          <Route index element={<Navigate to="/app/chat" replace />} />
+          <Route path="chat" element={<ChatPage />} />
+          <Route path="ledger" element={<LedgerPage />} />
+        </Route>
+        
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    )
-  }
-
-  return (
-    <Routes>
-      <Route path="/app" element={<Shell />}>
-        <Route index element={<Navigate to="chat" replace />} />
-        <Route path="chat" element={<Chat />} />
-        <Route path="ledger" element={<Ledger />} />
-        <Route path="corrections" element={<Corrections />} />
-        <Route path="help" element={<Help />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/app/chat" replace />} />
-    </Routes>
-  )
+    </BrowserRouter>
+  );
 }

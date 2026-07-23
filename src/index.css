@@ -1,202 +1,30 @@
-/* ─── Vanta design system ─────────────────────────────────────────────
-   White ground, near-black ink, one confident blue accent — no second
-   accent, ever. State differences (e.g. needs-review) are shown via
-   icon + border weight, never a second color.
-   Fraunces: sparse display use only. Inter: body/chat. IBM Plex Mono:
-   every monetary amount, everywhere — a deliberate signature detail.   */
+@import "tailwindcss";
 
-:root {
-  --bg: #ffffff;
-  --ink: #1c1c1c;
-  --ink-soft: #55575c;
-  --ink-faint: #8a8d93;
-  --line: #e6e6e8;
-  --line-soft: #f2f2f3;
-  --accent: #1e5aa8;
-  --accent-dark: #153f78;
-  --accent-wash: #e8f0fa;
-  --danger: #b42318;
-  --ok: #1c1c1c;
-  --radius: 10px;
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'Inter', system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Fraunces", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Corrected to the actual design system: pure white ground, near-black
+     text, single confident blue accent (no second accent color). The
+     AI Studio export used a dark navy (#0A182E) accent on an off-white
+     (#F8F9FA) background plus emerald/amber status colors — all replaced
+     here. See integration report for full detail. */
+  --color-vanta-navy: #1E5AA8;
+  --color-vanta-navy-dark: #153F78;
+  --color-vanta-black: #1C1C1C;
+  --color-vanta-bg: #FFFFFF;
+  --color-vanta-sidebar: #F7F9FC;
+  --color-vanta-gray: #55575C;
+  --color-vanta-border: #E6E6E8;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+@layer base {
+  body {
+    @apply font-sans text-vanta-black bg-vanta-bg antialiased;
+  }
 
-html, body, #root { height: 100%; }
-
-body {
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.55;
-  -webkit-font-smoothing: antialiased;
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif text-vanta-navy;
+  }
 }
-
-/* Display font is used sparingly — brand wordmark and page titles only. */
-.brand, .page-title, .display {
-  font-family: var(--font-display);
-  font-weight: 500;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-}
-
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-
-button { font: inherit; cursor: pointer; }
-input, select, textarea { font: inherit; color: inherit; }
-
-.money { font-family: var(--font-mono); font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
-
-/* ── buttons ── */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  border-radius: var(--radius); border: 1px solid transparent;
-  padding: 10px 18px; font-weight: 600; font-size: 14px;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-.btn-primary { background: var(--accent); color: #fff; }
-.btn-primary:hover { background: var(--accent-dark); }
-.btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
-.btn-ghost:hover { border-color: var(--ink-faint); }
-.btn-quiet { background: transparent; color: var(--ink-soft); padding: 6px 10px; }
-.btn-quiet:hover { color: var(--ink); }
-.btn-danger { background: transparent; color: var(--danger); border-color: var(--line); }
-.btn-sm { padding: 6px 12px; font-size: 13px; }
-.btn:disabled { opacity: 0.5; cursor: default; }
-
-/* ── forms ── */
-.field { display: flex; flex-direction: column; gap: 6px; }
-.field label { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
-.field input, .field select, .field textarea {
-  border: 1px solid var(--line); border-radius: var(--radius);
-  padding: 10px 12px; background: #fff; outline: none; width: 100%;
-}
-.field input:focus, .field select:focus, .field textarea:focus {
-  border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash);
-}
-.field .hint { font-size: 12.5px; color: var(--ink-faint); }
-
-/* ── cards / layout ── */
-.card {
-  background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
-  padding: 20px;
-}
-.card.flagged { border-width: 2px; border-color: var(--ink); }
-.page { max-width: 860px; margin: 0 auto; padding: 32px 20px 96px; }
-.page-title { font-size: 26px; margin-bottom: 4px; }
-.page-sub { color: var(--ink-soft); margin-bottom: 24px; max-width: 56ch; }
-.stack { display: flex; flex-direction: column; gap: 12px; }
-.row { display: flex; align-items: center; gap: 12px; }
-.spread { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.muted { color: var(--ink-soft); }
-.faint { color: var(--ink-faint); font-size: 13px; }
-
-.pill {
-  display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px;
-  font-size: 12px; font-weight: 600; border: 1px solid var(--line);
-  color: var(--ink-soft); background: #fff;
-}
-.pill.accent { background: var(--accent-wash); border-color: transparent; color: var(--accent-dark); }
-/* Needs-review is signalled by icon + heavier border, not a second color. */
-.pill.flagged { border: 1.5px solid var(--ink); color: var(--ink); font-weight: 700; }
-
-/* ── app shell ── */
-.shell { min-height: 100%; display: flex; flex-direction: column; }
-.topbar {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 20px; border-bottom: 1px solid var(--line);
-  position: sticky; top: 0; background: rgba(255,255,255,0.94); backdrop-filter: blur(6px); z-index: 20;
-}
-.brand { font-size: 20px; font-weight: 600; color: var(--ink); }
-.brand:hover { text-decoration: none; }
-
-.nav { display: flex; gap: 2px; flex-wrap: wrap; }
-.nav a {
-  color: var(--ink-soft); font-size: 14px; font-weight: 500;
-  padding: 7px 12px; border-radius: 8px;
-}
-.nav a:hover { color: var(--ink); text-decoration: none; background: var(--line-soft); }
-.nav a.active { color: var(--accent-dark); background: var(--accent-wash); }
-
-.review-badge {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
-  background: var(--ink); color: #fff; font-size: 11px; font-weight: 700; margin-left: 6px;
-}
-
-.menu-btn { display: none; }
-
-@media (max-width: 760px) {
-  .topbar .nav { display: none; }
-  .menu-btn { display: inline-flex; }
-}
-
-/* ── landing (minimal signed-out shell) ── */
-.landing-hero { max-width: 640px; margin: 0 auto; padding: 88px 20px 56px; text-align: center; }
-.landing-hero h1 { font-size: clamp(30px, 5vw, 44px); margin-bottom: 16px; }
-.landing-hero p.lede { font-size: 17px; color: var(--ink-soft); max-width: 46ch; margin: 0 auto 32px; }
-
-/* ── chat (home screen) ── */
-.chat-wrap { display: flex; flex-direction: column; max-width: 720px; margin: 0 auto; width: 100%; flex: 1; padding: 0 16px; min-width: 0; }
-.chat-scroll { flex: 1; overflow-y: auto; padding: 24px 4px; display: flex; flex-direction: column; gap: 14px; }
-.bubble { max-width: 78%; padding: 11px 15px; border-radius: 16px; font-size: 15px; }
-.bubble.user { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
-.bubble.vanta { align-self: flex-start; background: var(--line-soft); color: var(--ink); border-bottom-left-radius: 4px; }
-.chat-input {
-  display: flex; gap: 10px; padding: 12px 0 20px; border-top: 1px solid var(--line);
-  position: sticky; bottom: 0; background: var(--bg);
-}
-.chat-input input {
-  flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 999px; padding: 12px 18px; outline: none;
-}
-.chat-input input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
-.chat-input .btn { flex-shrink: 0; }
-.tx-card {
-  align-self: flex-start; border: 1px solid var(--line); border-radius: 12px;
-  padding: 14px 16px; max-width: 88%; background: #fff;
-}
-
-.chip-row { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 4px 0; }
-.chip {
-  border: 1px solid var(--line); background: #fff; border-radius: 999px;
-  padding: 6px 14px; font-size: 13px; font-weight: 500; color: var(--ink-soft);
-}
-.chip:hover { border-color: var(--accent); color: var(--accent-dark); }
-.chip.active { background: var(--ink); border-color: var(--ink); color: #fff; }
-
-/* ── tables / lists ── */
-.ledger-row {
-  display: grid; grid-template-columns: 92px 1fr auto auto; gap: 12px; align-items: baseline;
-  padding: 12px 4px; border-bottom: 1px solid var(--line-soft);
-}
-.ledger-row .desc { min-width: 0; }
-.ledger-row .desc .cat { font-size: 12.5px; color: var(--ink-faint); }
-@media (max-width: 620px) {
-  .ledger-row { grid-template-columns: 1fr auto; }
-  .ledger-row .date { grid-column: 1 / -1; font-size: 12px; color: var(--ink-faint); padding-bottom: 0; }
-  .ledger-row .actions { grid-column: 1 / -1; justify-self: start; }
-}
-
-.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-
-/* ── FAQ / help ── */
-details.help-item { border-bottom: 1px solid var(--line-soft); padding: 14px 4px; }
-details.help-item summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; }
-details.help-item summary::after { content: '+'; color: var(--ink-faint); }
-details.help-item[open] summary::after { content: '\2013'; }
-details.help-item p { margin-top: 10px; color: var(--ink-soft); }
-
-.empty { text-align: center; color: var(--ink-faint); padding: 40px 20px; }
-
-/* ── select-style toggle for language (visual placeholder only) ── */
-.lang-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
-.lang-toggle button {
-  border: none; background: transparent; padding: 5px 12px; border-radius: 999px;
-  font-size: 12.5px; font-weight: 600; color: var(--ink-soft);
-}
-.lang-toggle button.active { background: var(--ink); color: #fff; }
