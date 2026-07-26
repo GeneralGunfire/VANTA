@@ -22,6 +22,10 @@
 @layer base {
   body {
     @apply font-sans text-vanta-black bg-vanta-bg antialiased;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "kern" 1, "liga" 1;
   }
 
   h1, h2, h3, h4, h5, h6 {
