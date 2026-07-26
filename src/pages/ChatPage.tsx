@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowRight, Upload, AlertTriangle, ArrowUpRight, ArrowDownLeft, RefreshCw } from 'lucide-react';
+import { ArrowRight, Upload, AlertTriangle, ArrowUpRight, ArrowDownLeft, RefreshCw, Sparkles, Banknote, Receipt, MessageCircleQuestion } from 'lucide-react';
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
@@ -153,6 +153,165 @@ export default function ChatPage() {
     </div>
   );
 
+  const isEmpty = messages.length === 1 && messages[0].id === 'welcome';
+
+  const quickPrompts = [
+    { icon: Banknote, label: 'Log a sale', prompt: 'sold 20 loaves R400 cash' },
+    { icon: Receipt, label: 'Log an expense', prompt: 'bought flour for R180' },
+    { icon: MessageCircleQuestion, label: "Ask how you're doing", prompt: "how's business this week?" },
+  ];
+
+  const suggestionCards = [
+    {
+      icon: Banknote,
+      tag: 'Try it',
+      title: 'Log a sale',
+      body: 'Tell Vanta what you sold and for how much — it\'ll file it under Sales automatically.',
+      prompt: 'sold 20 loaves R400 cash',
+    },
+    {
+      icon: Receipt,
+      tag: 'Try it',
+      title: 'Log an expense',
+      body: 'Describe what you bought for the business and Vanta will categorize it for you.',
+      prompt: 'bought flour for R180',
+    },
+    {
+      icon: Upload,
+      tag: 'Beta',
+      title: 'Upload your records',
+      body: 'Attach an Excel or CSV file instead of typing each transaction out.',
+      prompt: null,
+    },
+  ];
+
+  const inputBar = (
+    <form onSubmit={handleSubmit} className="relative flex items-center">
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept=".xlsx,.xls,.csv"
+        onChange={(e) => {
+          if (e.target.files?.[0]) {
+            setInput(`Uploaded file: ${e.target.files[0].name} — file parsing isn't wired up yet, describe it in words instead.`);
+          }
+        }}
+      />
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        title="Attach Excel or CSV file"
+        className="absolute left-3 p-2 text-vanta-gray hover:text-vanta-navy transition-colors rounded-full hover:bg-vanta-sidebar"
+      >
+        <Upload size={18} />
+      </button>
+      <input
+        type="text"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="Tell Vanta about a sale or expense…"
+        className="w-full bg-vanta-sidebar border border-transparent py-4 pl-12 pr-24 sm:pr-32 text-vanta-black placeholder-vanta-gray/70 focus:outline-none focus:border-vanta-navy focus:bg-white transition-all rounded-full text-sm"
+      />
+      <button
+        type="submit"
+        disabled={!input.trim() || isLoading}
+        className="group absolute right-2 top-2 bottom-2 bg-vanta-black text-white px-4 sm:px-6 text-xs font-semibold hover:bg-vanta-navy transition-all disabled:opacity-40 flex items-center gap-1.5 sm:gap-2 rounded-full active:scale-[0.97]"
+      >
+        <span className="hidden sm:inline">Send</span>
+        <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+      </button>
+    </form>
+  );
+
+  if (isEmpty) {
+    return (
+      <div className="flex-1 flex flex-col h-full bg-vanta-bg relative overflow-y-auto">
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-16 min-h-full">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="relative w-20 h-20 mb-8"
+          >
+            <div className="absolute inset-0 rounded-full bg-vanta-navy/25 blur-2xl" />
+            <div
+              className="relative w-20 h-20 rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(30,90,168,0.35)]"
+              style={{ background: 'radial-gradient(circle at 32% 28%, #6FA3DE, #1E5AA8 55%, #153F78 100%)' }}
+            >
+              <Sparkles size={28} className="text-white/90" />
+            </div>
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="text-2xl md:text-3xl font-serif font-bold text-vanta-black text-center mb-2"
+          >
+            What happened in your business today?
+          </motion.h1>
+          <p className="text-vanta-gray text-sm text-center max-w-md mb-8">
+            Tell Vanta about a sale or expense in plain language — no forms, no spreadsheets.
+          </p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.15 }}
+            className="flex flex-wrap items-center justify-center gap-2 mb-6"
+          >
+            {quickPrompts.map((q) => (
+              <button
+                key={q.label}
+                onClick={() => handleQuickPrompt(q.prompt)}
+                className="inline-flex items-center gap-1.5 bg-white border border-vanta-border hover:border-vanta-navy px-4 py-2 rounded-full text-xs font-semibold text-vanta-black transition-colors shadow-[0_1px_2px_rgba(28,28,28,0.04)]"
+              >
+                <q.icon size={14} className="text-vanta-navy" />
+                {q.label}
+              </button>
+            ))}
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            className="w-full max-w-2xl bg-white border border-vanta-border shadow-[0_20px_50px_-20px_rgba(28,28,28,0.18)] rounded-3xl p-3"
+          >
+            {inputBar}
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.25 }}
+            className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl w-full mt-8"
+          >
+            {suggestionCards.map((card) => (
+              <button
+                key={card.title}
+                onClick={() => (card.prompt ? handleQuickPrompt(card.prompt) : fileInputRef.current?.click())}
+                className="text-left bg-white border border-vanta-border hover:border-vanta-navy rounded-2xl p-4 transition-colors group"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-9 h-9 rounded-full bg-vanta-sidebar border border-vanta-border flex items-center justify-center text-vanta-navy group-hover:bg-vanta-navy group-hover:text-white transition-colors">
+                    <card.icon size={16} />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-vanta-gray bg-vanta-sidebar px-2 py-0.5 rounded-full">
+                    {card.tag}
+                  </span>
+                </div>
+                <div className="text-sm font-bold text-vanta-black mb-1">{card.title}</div>
+                <div className="text-xs text-vanta-gray leading-relaxed">{card.body}</div>
+              </button>
+            ))}
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col h-full bg-vanta-bg relative overflow-hidden">
       <div className="px-6 md:px-12 py-6 border-b border-vanta-border bg-white shadow-xs">
@@ -217,58 +376,21 @@ export default function ChatPage() {
       </div>
 
       <div className="absolute bottom-6 left-6 right-6 z-30">
-        <div className="max-w-4xl mx-auto bg-white border border-vanta-border shadow-xl rounded-md p-4 space-y-3">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-            <span className="text-[10px] uppercase tracking-widest text-vanta-navy font-bold flex-shrink-0">Try:</span>
-            <button
-              onClick={() => handleQuickPrompt('sold 20 loaves R400 cash')}
-              className="bg-vanta-bg border border-vanta-border hover:border-vanta-navy px-3 py-1.5 text-vanta-navy text-xs font-medium truncate transition-colors rounded-xs flex-shrink-0"
-            >
-              "sold 20 loaves R400 cash"
-            </button>
-            <button
-              onClick={() => handleQuickPrompt('bought flour for R180')}
-              className="bg-vanta-bg border border-vanta-border hover:border-vanta-navy px-3 py-1.5 text-vanta-navy text-xs font-medium truncate transition-colors rounded-xs flex-shrink-0"
-            >
-              "bought flour for R180"
-            </button>
+        <div className="max-w-4xl mx-auto bg-white border border-vanta-border shadow-[0_20px_50px_-20px_rgba(28,28,28,0.25)] rounded-3xl p-3 space-y-2.5">
+          <div className="flex items-center gap-2 overflow-x-auto px-1 pt-1">
+            {quickPrompts.map((q) => (
+              <button
+                key={q.label}
+                onClick={() => handleQuickPrompt(q.prompt)}
+                className="inline-flex items-center gap-1.5 bg-vanta-sidebar hover:bg-vanta-border/60 px-3 py-1.5 rounded-full text-xs font-semibold text-vanta-black transition-colors shrink-0"
+              >
+                <q.icon size={13} className="text-vanta-navy" />
+                {q.label}
+              </button>
+            ))}
           </div>
 
-          <form onSubmit={handleSubmit} className="relative flex items-center">
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              accept=".xlsx,.xls,.csv"
-              onChange={(e) => {
-                if (e.target.files?.[0]) {
-                  setInput(`Uploaded file: ${e.target.files[0].name} — file parsing isn't wired up yet, describe it in words instead.`);
-                }
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              title="Attach Excel or CSV file"
-              className="absolute left-3 p-2 text-vanta-gray hover:text-vanta-navy transition-colors rounded-xs hover:bg-vanta-bg"
-            >
-              <Upload size={18} />
-            </button>
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Tell Vanta about a sale or expense…"
-              className="w-full bg-vanta-bg border border-vanta-border py-3.5 pl-12 pr-20 sm:pr-32 text-vanta-navy placeholder-gray-400 focus:outline-none focus:border-vanta-navy transition-all rounded-xs text-sm"
-            />
-            <button
-              type="submit"
-              disabled={!input.trim() || isLoading}
-              className="absolute right-2 top-2 bottom-2 bg-vanta-navy text-white px-3 sm:px-5 text-xs font-bold tracking-widest uppercase hover:bg-opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1.5 sm:gap-2 rounded-xs"
-            >
-              <span className="hidden sm:inline">Send</span> <ArrowRight size={14} />
-            </button>
-          </form>
+          {inputBar}
         </div>
       </div>
     </div>
