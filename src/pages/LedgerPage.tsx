@@ -1,10 +1,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Search, Plus, FileText, Utensils, Truck, Zap, Home, Users, ShoppingBag } from 'lucide-react';
+import { Plus, FileText, Utensils, Truck, Zap, Home, Users, ShoppingBag } from 'lucide-react';
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
+import { SearchBar } from '../components/ui/search-bar';
 import TransactionDetailModal, { Transaction } from '../components/TransactionDetailModal';
 import AddTransactionModal from '../components/AddTransactionModal';
+
+const TRANSACTION_CATEGORIES = ['Sales', 'Stock', 'Rent', 'Utilities', 'Transport', 'Wages', 'Other'];
 
 export default function LedgerPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -116,14 +119,11 @@ export default function LedgerPage() {
 
         <div className="bg-white border border-vanta-border p-6 rounded-md shadow-sm space-y-4">
           <div className="flex items-center justify-between gap-6 flex-wrap">
-            <div className="relative flex-1 min-w-[300px]">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-vanta-navy" size={19} />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+            <div className="flex-1 min-w-65">
+              <SearchBar
                 placeholder="Search your transactions"
-                className="w-full bg-vanta-bg border border-vanta-border py-3.5 pl-12 pr-4 text-sm font-medium text-vanta-navy placeholder-gray-400 focus:outline-none focus:border-vanta-navy transition-colors rounded-xs"
+                suggestions={TRANSACTION_CATEGORIES}
+                onChange={setSearchQuery}
               />
             </div>
 
