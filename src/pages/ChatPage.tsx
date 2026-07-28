@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowRight, Upload, AlertTriangle, ArrowUpRight, ArrowDownLeft, RefreshCw, Sparkles, Banknote, Receipt, MessageCircleQuestion } from 'lucide-react';
+import { useOutletContext } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { APP_SURFACE, RAISED_SURFACE } from '../lib/surfaces';
+import type { AppShellContext } from '../layouts/AppLayout';
 
 interface ParsedTransaction {
   id?: string;
@@ -49,10 +51,27 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const composerRef = useRef<HTMLInputElement>(null);
+
+  // Collapses the sidebar while the composer is active. Blurring restores it,
+  // so the nav is always one click (or Escape) away.
+  const { setComposerFocused } = useOutletContext<AppShellContext>();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Leaving focus mode should never require hunting for somewhere safe to click.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') composerRef.current?.blur();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  // A route change while focused would otherwise strand the sidebar collapsed.
+  useEffect(() => () => setComposerFocused(false), [setComposerFocused]);
 
   function addMessage(msg: DistributiveOmit<Message, 'id' | 'timestamp'> & { id?: string }) {
     const timeStr = new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
@@ -239,21 +258,28 @@ export default function ChatPage() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
+            onMouseDown={(e) => e.preventDefault()}
             title="Attach Excel or CSV file"
             className="absolute left-3 p-2 text-white/45 hover:text-[#8FBCEA] transition-colors rounded-full hover:bg-white/10"
           >
             <Upload size={18} />
           </button>
           <input
+            ref={composerRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onFocus={() => setComposerFocused(true)}
+            onBlur={() => setComposerFocused(false)}
             placeholder="Tell Vanta about a sale or expense…"
             className="w-full bg-transparent py-4 pl-12 pr-24 sm:pr-32 text-zinc-100 placeholder-white/35 focus:outline-none rounded-full text-sm"
           />
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
+            // Keep focus on the composer: blurring would expand the sidebar and
+            // shift this button out from under the cursor before mouseup.
+            onMouseDown={(e) => e.preventDefault()}
             className="group/send absolute right-2 top-2 bottom-2 bg-vanta-navy text-white px-4 sm:px-6 text-xs font-semibold hover:bg-[#2A6DC4] transition-all disabled:opacity-40 flex items-center gap-1.5 sm:gap-2 rounded-full active:scale-[0.97]"
           >
             <span className="hidden sm:inline">Send</span>
@@ -450,6 +476,7 @@ export default function ChatPage() {
               <button
                 key={q.label}
                 onClick={() => handleQuickPrompt(q.prompt)}
+                onMouseDown={(e) => e.preventDefault()}
                 className="inline-flex items-center gap-1.5 bg-white/6 border border-white/10 hover:bg-white/12 hover:border-white/20 px-3 py-1.5 rounded-full text-xs font-semibold text-zinc-100 transition-colors shrink-0"
               >
                 <q.icon size={13} className="text-[#8FBCEA]" />
