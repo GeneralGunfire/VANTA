@@ -182,13 +182,13 @@ const SearchBar = ({ placeholder = 'Search...', suggestions: suggestionSource = 
         <motion.div
           className={cn(
             'flex items-center w-full rounded-full border relative overflow-hidden backdrop-blur-md',
-            isFocused ? 'border-transparent shadow-xl' : 'border-vanta-border bg-vanta-sidebar/60',
+            isFocused ? 'border-transparent shadow-xl' : 'border-white/10 bg-white/5',
           )}
           animate={{
             boxShadow: isClicked
               ? '0 0 40px rgba(30, 90, 168, 0.35), 0 0 15px rgba(30, 90, 168, 0.5) inset'
               : isFocused
-              ? '0 15px 35px rgba(28, 28, 28, 0.15)'
+              ? '0 15px 35px rgba(0, 0, 0, 0.55)'
               : '0 0 0 rgba(0, 0, 0, 0)',
           }}
           onClick={handleClick}
@@ -219,7 +219,7 @@ const SearchBar = ({ placeholder = 'Search...', suggestions: suggestionSource = 
               />
               <motion.div
                 className="absolute inset-0 -z-5 rounded-full bg-white"
-                initial={{ opacity: 0.5 }}
+                initial={{ opacity: 0.18 }}
                 animate={{ opacity: 0 }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
               />
@@ -234,7 +234,7 @@ const SearchBar = ({ placeholder = 'Search...', suggestions: suggestionSource = 
               strokeWidth={isFocused ? 2.5 : 2}
               className={cn(
                 'transition-all duration-300',
-                isAnimating ? 'text-vanta-navy' : isFocused ? 'text-vanta-navy' : 'text-vanta-gray',
+                isAnimating ? 'text-[#8FBCEA]' : isFocused ? 'text-[#8FBCEA]' : 'text-white/45',
               )}
             />
           </motion.div>
@@ -248,8 +248,8 @@ const SearchBar = ({ placeholder = 'Search...', suggestions: suggestionSource = 
             onFocus={() => setIsFocused(true)}
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
             className={cn(
-              'w-full py-3 bg-transparent outline-none placeholder:text-vanta-gray/70 font-medium text-base relative z-10',
-              isFocused ? 'text-vanta-black tracking-wide' : 'text-vanta-black',
+              'w-full py-3 bg-transparent outline-none placeholder:text-white/35 font-medium text-base relative z-10',
+              isFocused ? 'text-zinc-50 tracking-wide' : 'text-zinc-100',
             )}
           />
 
@@ -262,7 +262,7 @@ const SearchBar = ({ placeholder = 'Search...', suggestions: suggestionSource = 
                 exit={{ opacity: 0, scale: 0.8, x: -20 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-5 py-2 mr-2 text-sm font-semibold rounded-full bg-vanta-navy text-white transition-all shadow-sm hover:bg-vanta-navy-dark"
+                className="px-5 py-2 mr-2 text-sm font-semibold rounded-full bg-vanta-navy text-white transition-all shadow-[0_8px_20px_-8px_rgba(30,90,168,0.9)] hover:bg-[#2A6DC4]"
               >
                 Search
               </motion.button>
@@ -290,11 +290,11 @@ const SearchBar = ({ placeholder = 'Search...', suggestions: suggestionSource = 
             animate={{ opacity: 1, y: 0, height: 'auto' }}
             exit={{ opacity: 0, y: 10, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute z-10 w-full mt-2 overflow-hidden bg-white backdrop-blur-md rounded-lg shadow-xl border border-vanta-border"
+            className="absolute z-10 w-full mt-2 overflow-hidden bg-[#141A23]/95 backdrop-blur-xl rounded-xl shadow-2xl border border-white/10"
             style={{
               maxHeight: '300px',
               overflowY: 'auto',
-              filter: isUnsupportedBrowser ? 'none' : 'drop-shadow(0 15px 15px rgba(0,0,0,0.08))',
+              filter: isUnsupportedBrowser ? 'none' : 'drop-shadow(0 15px 20px rgba(0,0,0,0.5))',
             }}
           >
             <div className="p-2">
@@ -312,13 +312,13 @@ const SearchBar = ({ placeholder = 'Search...', suggestions: suggestionSource = 
                     if (onSearch) onSearch(suggestion);
                     setIsFocused(false);
                   }}
-                  className="flex items-center gap-2 px-4 py-2 cursor-pointer rounded-md hover:bg-vanta-sidebar group"
+                  className="flex items-center gap-2 px-4 py-2 cursor-pointer rounded-lg hover:bg-white/10 group"
                 >
                   <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} transition={{ delay: index * 0.06 }}>
-                    <CircleDot size={16} className="text-vanta-gray group-hover:text-vanta-navy" />
+                    <CircleDot size={16} className="text-white/40 group-hover:text-[#8FBCEA]" />
                   </motion.div>
                   <motion.span
-                    className="text-vanta-black group-hover:text-vanta-navy"
+                    className="text-white/70 group-hover:text-zinc-50"
                     initial={{ x: -5, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: index * 0.08 }}

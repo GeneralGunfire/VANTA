@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Phone, KeyRound, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { APP_SURFACE } from '../lib/surfaces';
 
 export default function AuthPage() {
   const [searchParams] = useSearchParams();
@@ -56,7 +57,10 @@ export default function AuthPage() {
   const stepIndex = steps.findIndex((s) => s.key === step);
 
   return (
-    <div className="h-dvh w-screen bg-vanta-bg font-sans text-vanta-black flex flex-col lg:flex-row overflow-hidden">
+    <div
+      className="h-dvh w-screen font-sans text-zinc-100 flex flex-col lg:flex-row overflow-hidden"
+      style={{ background: APP_SURFACE }}
+    >
       {/* Left Branding Panel */}
       <div className="lg:w-[42%] p-10 md:p-14 lg:p-16 flex flex-col justify-between relative overflow-hidden text-white">
         {/* Background dissolves to transparent at the seam — a real fade, not a clipped shape */}
@@ -136,28 +140,28 @@ export default function AuthPage() {
         />
         <div className="relative w-full max-w-md mx-auto">
           <div>
-            <div className="flex gap-1 bg-vanta-sidebar rounded-full p-1 w-fit mb-10">
+            <div className="flex gap-1 bg-white/5 border border-white/10 rounded-full p-1 w-fit mb-10">
               <button
                 className={cn(
                   'px-5 py-2 text-xs font-bold uppercase tracking-wider rounded-full transition-all relative',
-                  mode === 'signin' ? 'text-vanta-black' : 'text-vanta-gray hover:text-vanta-black',
+                  mode === 'signin' ? 'text-zinc-50' : 'text-white/50 hover:text-white/90',
                 )}
                 onClick={() => { setMode('signin'); setStep('phone'); }}
               >
                 {mode === 'signin' && (
-                  <motion.div layoutId="authTab" className="absolute inset-0 bg-white rounded-full shadow-[0_1px_2px_rgba(28,28,28,0.08)]" />
+                  <motion.div layoutId="authTab" className="absolute inset-0 bg-white/12 border border-white/15 rounded-full" />
                 )}
                 <span className="relative">Sign In</span>
               </button>
               <button
                 className={cn(
                   'px-5 py-2 text-xs font-bold uppercase tracking-wider rounded-full transition-all relative',
-                  mode === 'create' ? 'text-vanta-black' : 'text-vanta-gray hover:text-vanta-black',
+                  mode === 'create' ? 'text-zinc-50' : 'text-white/50 hover:text-white/90',
                 )}
                 onClick={() => { setMode('create'); setStep('phone'); }}
               >
                 {mode === 'create' && (
-                  <motion.div layoutId="authTab" className="absolute inset-0 bg-white rounded-full shadow-[0_1px_2px_rgba(28,28,28,0.08)]" />
+                  <motion.div layoutId="authTab" className="absolute inset-0 bg-white/12 border border-white/15 rounded-full" />
                 )}
                 <span className="relative">Create Account</span>
               </button>
@@ -166,10 +170,10 @@ export default function AuthPage() {
             <AnimatePresence mode="wait">
               {step === 'phone' && (
                 <motion.div key="phone-step" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }}>
-                  <h2 className="text-3xl font-serif font-bold text-vanta-navy mb-3">
+                  <h2 className="text-3xl font-serif font-bold text-zinc-50 mb-3">
                     {mode === 'signin' ? 'Welcome back' : 'Get started'}
                   </h2>
-                  <p className="text-vanta-gray text-sm mb-8 leading-relaxed font-medium">
+                  <p className="text-white/55 text-sm mb-8 leading-relaxed font-medium">
                     {mode === 'signin'
                       ? "We'll send a code to your phone."
                       : "Enter your phone number to begin."}
@@ -177,22 +181,22 @@ export default function AuthPage() {
 
                   <form onSubmit={handlePhoneSubmit} className="space-y-6">
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-vanta-gray mb-2">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-white/45 mb-2">
                         Phone Number
                       </label>
                       <div className="relative">
-                        <Phone size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-vanta-navy" />
+                        <Phone size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8FBCEA]" />
                         <input
                           type="tel"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
                           placeholder="+27 82 123 4567"
                           required
-                          className="w-full text-base font-mono bg-vanta-sidebar border border-transparent rounded-full pl-12 pr-4 py-3.5 focus:outline-none focus:border-vanta-navy focus:bg-white transition-colors text-vanta-black font-semibold"
+                          className="w-full text-base font-mono bg-white/5 border border-white/10 rounded-full pl-12 pr-4 py-3.5 focus:outline-none focus:border-[#8FBCEA]/50 focus:bg-white/8 transition-colors text-zinc-50 placeholder:text-white/30 font-semibold"
                         />
                       </div>
                     </div>
-                    <button type="submit" className="group w-full bg-vanta-black text-white flex justify-center items-center gap-2 px-6 py-3.5 text-sm font-semibold rounded-full hover:bg-vanta-navy transition-all active:scale-[0.98] shadow-sm">
+                    <button type="submit" className="group w-full bg-vanta-navy text-white flex justify-center items-center gap-2 px-6 py-3.5 text-sm font-semibold rounded-full hover:bg-[#2A6DC4] transition-all active:scale-[0.98] shadow-[0_12px_28px_-10px_rgba(30,90,168,0.9)]">
                       <span>Send code</span>
                       <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
                     </button>
@@ -202,21 +206,21 @@ export default function AuthPage() {
 
               {step === 'code' && (
                 <motion.div key="code-step" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }}>
-                  <button onClick={() => setStep('phone')} className="inline-flex items-center gap-1.5 text-xs text-vanta-gray hover:text-vanta-navy mb-6 font-bold uppercase tracking-wider">
+                  <button onClick={() => setStep('phone')} className="inline-flex items-center gap-1.5 text-xs text-white/45 hover:text-[#8FBCEA] mb-6 font-bold uppercase tracking-wider">
                     <ArrowLeft size={14} /> Back
                   </button>
-                  <h2 className="text-3xl font-serif font-bold text-vanta-navy mb-3">Enter the code</h2>
-                  <p className="text-vanta-gray text-sm mb-8 leading-relaxed font-medium">
+                  <h2 className="text-3xl font-serif font-bold text-zinc-50 mb-3">Enter the code</h2>
+                  <p className="text-white/55 text-sm mb-8 leading-relaxed font-medium">
                     Enter any 6 digits — this is a placeholder, not a real code yet.
                   </p>
 
                   <form onSubmit={handleCodeSubmit} className="space-y-6">
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-vanta-gray mb-2">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-white/45 mb-2">
                         Verification Code
                       </label>
                       <div className="relative">
-                        <KeyRound size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-vanta-navy" />
+                        <KeyRound size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8FBCEA]" />
                         <input
                           type="text"
                           value={code}
@@ -224,11 +228,11 @@ export default function AuthPage() {
                           placeholder="123456"
                           required
                           maxLength={6}
-                          className="w-full text-lg tracking-[0.3em] font-mono bg-vanta-sidebar border border-transparent rounded-full pl-12 pr-4 py-3.5 focus:outline-none focus:border-vanta-navy focus:bg-white transition-colors text-vanta-black font-semibold"
+                          className="w-full text-lg tracking-[0.3em] font-mono bg-white/5 border border-white/10 rounded-full pl-12 pr-4 py-3.5 focus:outline-none focus:border-[#8FBCEA]/50 focus:bg-white/8 transition-colors text-zinc-50 placeholder:text-white/30 font-semibold"
                         />
                       </div>
                     </div>
-                    <button type="submit" className="group w-full bg-vanta-black text-white flex justify-center items-center gap-2 px-6 py-3.5 text-sm font-semibold rounded-full hover:bg-vanta-navy transition-all active:scale-[0.98] shadow-sm">
+                    <button type="submit" className="group w-full bg-vanta-navy text-white flex justify-center items-center gap-2 px-6 py-3.5 text-sm font-semibold rounded-full hover:bg-[#2A6DC4] transition-all active:scale-[0.98] shadow-[0_12px_28px_-10px_rgba(30,90,168,0.9)]">
                       <span>{mode === 'create' ? 'Continue' : 'Sign In'}</span>
                       <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
                     </button>
@@ -238,45 +242,45 @@ export default function AuthPage() {
 
               {step === 'business' && mode === 'create' && (
                 <motion.div key="business-step" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }}>
-                  <button onClick={() => setStep('code')} className="inline-flex items-center gap-1.5 text-xs text-vanta-gray hover:text-vanta-navy mb-6 font-bold uppercase tracking-wider">
+                  <button onClick={() => setStep('code')} className="inline-flex items-center gap-1.5 text-xs text-white/45 hover:text-[#8FBCEA] mb-6 font-bold uppercase tracking-wider">
                     <ArrowLeft size={14} /> Back
                   </button>
-                  <h2 className="text-3xl font-serif font-bold text-vanta-navy mb-3">Tell us about your business</h2>
-                  <p className="text-vanta-gray text-sm mb-8 leading-relaxed font-medium">
+                  <h2 className="text-3xl font-serif font-bold text-zinc-50 mb-3">Tell us about your business</h2>
+                  <p className="text-white/55 text-sm mb-8 leading-relaxed font-medium">
                     This helps Vanta understand your records from day one.
                   </p>
 
                   <form onSubmit={handleBusinessSubmit} className="space-y-6">
                     <div className="space-y-5">
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-vanta-gray mb-2">Business name</label>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-white/45 mb-2">Business name</label>
                         <input
                           type="text"
                           value={businessName}
                           onChange={(e) => setBusinessName(e.target.value)}
                           placeholder="e.g. Nomsa's Bakery"
                           required
-                          className="w-full text-base font-semibold bg-vanta-sidebar border border-transparent rounded-full px-5 py-3.5 focus:outline-none focus:border-vanta-navy focus:bg-white transition-colors text-vanta-black"
+                          className="w-full text-base font-semibold bg-white/5 border border-white/10 rounded-full px-5 py-3.5 focus:outline-none focus:border-[#8FBCEA]/50 focus:bg-white/8 transition-colors text-zinc-50 placeholder:text-white/30"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-vanta-gray mb-2">What kind of business is it?</label>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-white/45 mb-2">What kind of business is it?</label>
                         <select
                           value={businessType}
                           onChange={(e) => setBusinessType(e.target.value)}
                           required
-                          className="w-full text-base font-semibold bg-vanta-sidebar border border-transparent rounded-full px-5 py-3.5 focus:outline-none focus:border-vanta-navy focus:bg-white transition-colors text-vanta-black"
+                          className="w-full text-base font-semibold bg-white/5 border border-white/10 rounded-full px-5 py-3.5 focus:outline-none focus:border-[#8FBCEA]/50 focus:bg-white/8 transition-colors text-zinc-50 placeholder:text-white/30"
                         >
-                          <option value="sole_proprietor">Informal / not yet registered</option>
-                          <option value="sole_prop_registered">Sole proprietor (registered)</option>
-                          <option value="private_company">Private company (Pty) Ltd</option>
-                          <option value="partnership">Partnership</option>
+                          <option className="bg-[#141A23] text-zinc-100" value="sole_proprietor">Informal / not yet registered</option>
+                          <option className="bg-[#141A23] text-zinc-100" value="sole_prop_registered">Sole proprietor (registered)</option>
+                          <option className="bg-[#141A23] text-zinc-100" value="private_company">Private company (Pty) Ltd</option>
+                          <option className="bg-[#141A23] text-zinc-100" value="partnership">Partnership</option>
                         </select>
                       </div>
                     </div>
 
-                    <button type="submit" className="group w-full bg-vanta-black text-white flex justify-center items-center gap-2 px-6 py-3.5 text-sm font-semibold rounded-full hover:bg-vanta-navy transition-all active:scale-[0.98] shadow-sm">
+                    <button type="submit" className="group w-full bg-vanta-navy text-white flex justify-center items-center gap-2 px-6 py-3.5 text-sm font-semibold rounded-full hover:bg-[#2A6DC4] transition-all active:scale-[0.98] shadow-[0_12px_28px_-10px_rgba(30,90,168,0.9)]">
                       <span>Finish</span>
                       <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
                     </button>
@@ -286,11 +290,11 @@ export default function AuthPage() {
             </AnimatePresence>
           </div>
 
-          <div className="pt-10 flex justify-between text-[10px] uppercase tracking-widest text-vanta-gray font-bold">
+          <div className="pt-10 flex justify-between text-[10px] uppercase tracking-widest text-white/40 font-bold">
             <div>© 2026 Vanta</div>
             <div className="flex gap-6">
-              <a href="#" className="hover:text-vanta-navy">Privacy</a>
-              <a href="#" className="hover:text-vanta-navy">Terms</a>
+              <a href="#" className="hover:text-white">Privacy</a>
+              <a href="#" className="hover:text-white">Terms</a>
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import ConfigModal from '../components/ConfigModal';
 import SecurityModal from '../components/SecurityModal';
+import { SIDEBAR_SURFACE } from '../lib/surfaces';
 
 export default function AppLayout() {
   const navigate = useNavigate();
@@ -26,110 +27,160 @@ export default function AppLayout() {
   ];
 
   return (
-    <div className="h-screen flex bg-vanta-bg font-sans text-vanta-black overflow-hidden relative">
+    <div className="h-screen flex bg-vanta-bg font-sans text-vanta-black overflow-hidden relative isolate">
       {/* Config & Security Popups */}
       <ConfigModal isOpen={isConfigOpen} onClose={() => setIsConfigOpen(false)} />
       <SecurityModal isOpen={isSecurityOpen} onClose={() => setIsSecurityOpen(false)} />
 
-      {/* Shared atmospheric backdrop so the sidebar and content read as one canvas, not two blocks */}
+      {/* Shared atmospheric backdrop so the sidebar and content read as one canvas, not two blocks.
+          Layered tints keep the shell off-white so white cards and the composer glow read against it. */}
       <div
-        className="pointer-events-none fixed inset-0 z-0"
-        style={{ background: 'radial-gradient(ellipse 55% 45% at 0% 0%, rgba(30,90,168,0.05), transparent 70%)' }}
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{ background: 'linear-gradient(180deg, #F4F7FB 0%, #FAFCFE 45%, #F7F9FC 100%)' }}
+      />
+      <div
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{
+          background:
+            'radial-gradient(ellipse 55% 45% at 0% 0%, rgba(30,90,168,0.07), transparent 70%), radial-gradient(ellipse 45% 40% at 100% 100%, rgba(30,90,168,0.05), transparent 70%)',
+        }}
+      />
+      <div
+        className="pointer-events-none fixed inset-0 -z-10 opacity-70"
+        style={{
+          backgroundImage: 'radial-gradient(#DCE3EC 1px, transparent 1px)',
+          backgroundSize: '22px 22px',
+        }}
       />
 
       {/* Mobile Header & Menu Toggle */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-vanta-bg/95 backdrop-blur-sm border-b border-vanta-border/60 flex items-center justify-between px-4 z-50">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-vanta-navy text-white flex items-center justify-center font-serif font-bold text-sm rounded-sm">
+      <div
+        className="md:hidden fixed top-0 left-0 right-0 h-16 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-4 z-50"
+        style={{ background: SIDEBAR_SURFACE }}
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 bg-vanta-navy text-white flex items-center justify-center font-serif font-bold text-sm rounded-lg">
             V
           </div>
-          <span className="font-serif font-bold text-lg text-vanta-navy">Vanta</span>
+          <span className="font-serif font-bold text-lg text-zinc-50">Vanta</span>
         </div>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 text-vanta-navy hover:bg-vanta-sidebar rounded-sm transition-colors"
+          aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+          className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
         >
           <Menu size={22} />
         </button>
       </div>
 
-      {/* Sidebar — shares the main content's backdrop, but a bold side line and outlined details keep it a distinct panel */}
+      {/* Sidebar */}
       <div className={cn(
-        "fixed md:sticky md:top-0 h-screen w-64 md:w-72 flex flex-col z-40 transition-transform duration-300 ease-in-out md:transform-none shrink-0 border-r-2 border-vanta-border",
+        "fixed md:sticky md:top-0 h-screen w-64 md:w-72 flex flex-col z-40 transition-transform duration-300 ease-in-out md:transform-none shrink-0 border-r border-white/10",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}>
-        <div className="absolute inset-0 bg-vanta-bg md:bg-transparent" />
+        <div className="absolute inset-0" style={{ background: SIDEBAR_SURFACE }} />
+        {/* Ambient wash so the panel isn't a flat block */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 90% 30% at 0% 0%, rgba(30,90,168,0.22), transparent 70%)',
+          }}
+        />
+
         {/* Brand */}
-        <div className="relative p-8 hidden md:block">
+        <div className="relative hidden md:block px-6 pt-7 pb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-vanta-navy text-white flex items-center justify-center font-serif font-bold text-xl rounded-lg border-2 border-vanta-navy-dark shadow-md">
+            <div className="w-10 h-10 bg-vanta-navy text-white flex items-center justify-center font-serif font-bold text-xl rounded-xl shadow-[0_8px_20px_-8px_rgba(30,90,168,0.9)]">
               V
             </div>
-            <div className="font-serif font-bold text-xl text-vanta-navy leading-tight">Vanta</div>
+            <div className="font-serif font-bold text-xl text-zinc-50 leading-tight">Vanta</div>
           </div>
         </div>
 
         {/* Main Nav Items */}
-        <div className="relative flex-1 overflow-y-auto px-5 py-6 pt-20 md:pt-2">
-          <nav className="space-y-1.5 mb-8">
+        <div className="relative flex-1 overflow-y-auto px-4 py-6 pt-20 md:pt-0">
+          <nav className="space-y-1">
             {navItems.map((item) => (
               <NavLink
                 key={item.name}
                 to={item.path}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={({ isActive }) => cn(
-                  "flex items-center justify-between px-3.5 py-3 text-sm font-medium rounded-full transition-all relative group border-2",
-                  isActive
-                    ? "bg-vanta-sidebar text-vanta-navy font-bold border-vanta-navy/25 shadow-[0_1px_2px_rgba(28,28,28,0.05)]"
-                    : "border-transparent text-vanta-gray hover:text-vanta-navy hover:border-vanta-border"
-                )}
+                className="relative flex items-center px-3.5 py-2.5 text-sm rounded-xl transition-colors group"
               >
-                <div className="flex items-center gap-3.5">
-                  <item.icon size={19} className="transition-transform group-hover:scale-105 text-vanta-navy" />
-                  <span>{item.name}</span>
-                </div>
-                {location.pathname === item.path && (
-                  <motion.span
-                    layoutId="sidebarActiveDot"
-                    className="w-2 h-2 rounded-full bg-vanta-navy shadow-xs"
-                  />
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <motion.span
+                        layoutId="sidebarActive"
+                        transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                        className="absolute inset-0 rounded-xl bg-white/10 border border-white/15"
+                      />
+                    )}
+                    {isActive && (
+                      <motion.span
+                        layoutId="sidebarRail"
+                        transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                        className="absolute left-0 top-1/2 h-5 w-0.75 -translate-y-1/2 rounded-full bg-[#8FBCEA] shadow-[0_0_10px_rgba(143,188,234,0.9)]"
+                      />
+                    )}
+                    <span className="relative flex items-center gap-3.5">
+                      <item.icon
+                        size={18}
+                        className={cn(
+                          'transition-colors',
+                          isActive ? 'text-[#8FBCEA]' : 'text-white/45 group-hover:text-white/80',
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          'transition-colors',
+                          isActive ? 'font-semibold text-zinc-50' : 'font-medium text-white/60 group-hover:text-white/90',
+                        )}
+                      >
+                        {item.name}
+                      </span>
+                    </span>
+                  </>
                 )}
               </NavLink>
             ))}
           </nav>
 
           {/* System Section */}
-          <div className="text-[10px] uppercase tracking-widest text-vanta-gray mb-4 px-2 font-bold border-t-2 border-vanta-border pt-5">System</div>
-          <nav className="space-y-1.5">
+          <div className="mt-8 mb-3 px-3.5 text-[10px] uppercase tracking-[0.18em] text-white/30 font-bold">
+            System
+          </div>
+          <nav className="space-y-1">
             <button
               onClick={() => { setIsConfigOpen(true); setIsMobileMenuOpen(false); }}
-              className="w-full flex items-center gap-3.5 px-3.5 py-3 text-sm font-medium text-vanta-gray hover:text-vanta-navy rounded-full transition-all text-left group border-2 border-transparent hover:border-vanta-border"
+              className="w-full flex items-center gap-3.5 px-3.5 py-2.5 text-sm font-medium text-white/60 hover:text-white/90 hover:bg-white/5 rounded-xl transition-colors text-left group"
             >
-              <Settings size={19} className="group-hover:rotate-45 transition-transform duration-300 text-vanta-navy" />
+              <Settings size={18} className="text-white/45 group-hover:text-white/80 group-hover:rotate-45 transition-all duration-300" />
               <span>Config</span>
             </button>
             <button
               onClick={() => { setIsSecurityOpen(true); setIsMobileMenuOpen(false); }}
-              className="w-full flex items-center gap-3.5 px-3.5 py-3 text-sm font-medium text-vanta-gray hover:text-vanta-navy rounded-full transition-all text-left group border-2 border-transparent hover:border-vanta-border"
+              className="w-full flex items-center gap-3.5 px-3.5 py-2.5 text-sm font-medium text-white/60 hover:text-white/90 hover:bg-white/5 rounded-xl transition-colors text-left group"
             >
-              <HelpCircle size={19} className="group-hover:scale-110 transition-transform text-vanta-navy" />
+              <HelpCircle size={18} className="text-white/45 group-hover:text-white/80 transition-colors" />
               <span>Security</span>
             </button>
           </nav>
         </div>
 
         {/* Sign Out */}
-        <div className="relative p-6 flex items-center justify-end border-t-2 border-vanta-border">
+        <div className="relative px-4 pb-6 pt-4 border-t border-white/10">
           <button
             onClick={() => {
               localStorage.removeItem('vanta_auth_status');
               navigate('/');
             }}
-            title="Sign Out"
-            className="flex items-center gap-2 text-vanta-gray hover:text-vanta-navy px-3.5 py-2 transition-colors rounded-full border-2 border-transparent hover:border-vanta-border text-xs font-bold uppercase tracking-widest"
+            className="group w-full flex items-center justify-center gap-2.5 px-3.5 py-3 text-sm font-semibold text-white/80 bg-white/6 hover:bg-white/12 border border-white/12 hover:border-[#8FBCEA]/40 rounded-xl transition-all hover:text-white active:scale-[0.98] hover:shadow-[0_8px_22px_-10px_rgba(30,90,168,0.9)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8FBCEA]/50"
           >
-            <LogOut size={16} />
-            Sign Out
+            <LogOut size={17} className="text-white/55 group-hover:text-[#8FBCEA] transition-colors" />
+            <span>Sign out</span>
           </button>
         </div>
       </div>
