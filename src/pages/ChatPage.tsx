@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Upload, AlertTriangle, ArrowUpRight, ArrowDownLeft, RefreshCw, ImagePlus, Globe, Mic } from 'lucide-react';
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { TextGenerateEffect } from '../components/ui/text-generate-effect';
 import { MagicCard } from '../components/ui/magic-card';
+import type { AppShellContext } from '../layouts/AppLayout';
 
 interface ParsedTransaction {
   id?: string;
@@ -39,10 +41,27 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const composerRef = useRef<HTMLInputElement>(null);
+
+  // Collapses the sidebar while the composer is active. Blurring restores it,
+  // so the nav is always one click (or Escape) away.
+  const { setComposerFocused } = useOutletContext<AppShellContext>();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Leaving focus mode should never require hunting for somewhere safe to click.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') composerRef.current?.blur();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  // A route change while focused would otherwise strand the sidebar collapsed.
+  useEffect(() => () => setComposerFocused(false), [setComposerFocused]);
 
   function addMessage(msg: DistributiveOmit<Message, 'id' | 'timestamp'> & { id?: string }) {
     const timeStr = new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
@@ -200,9 +219,12 @@ export default function ChatPage() {
         />
         <div className="relative rounded-2xl bg-[#0B0F1A]/90 border border-white/10 group-focus-within:border-white/20 transition-colors backdrop-blur-sm">
         <input
+          ref={composerRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onFocus={() => setComposerFocused(true)}
+          onBlur={() => setComposerFocused(false)}
           placeholder="Message AI Chat…"
           className="w-full bg-transparent pt-4 pb-12 px-4 text-zinc-100 placeholder-white/35 focus:outline-none text-sm"
         />

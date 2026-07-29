@@ -31,11 +31,20 @@ const historyGroups = [
   },
 ];
 
+/** Shared with routed children via <Outlet context>. */
+export interface AppShellContext {
+  /** Collapses the sidebar while the chat composer is active, for a focused write. */
+  setComposerFocused: (focused: boolean) => void;
+}
+
 export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [historyFilter, setHistoryFilter] = useState('');
+  const [composerFocused, setComposerFocused] = useState(false);
+  /** Desktop only: the sidebar narrows to an icon rail while the composer is active. */
+  const collapsed = composerFocused;
 
   const filteredHistoryGroups = React.useMemo(() => {
     const q = historyFilter.trim().toLowerCase();
@@ -76,8 +85,9 @@ export default function AppLayout() {
       {/* Sidebar */}
       <div
         className={cn(
-          'fixed md:sticky md:top-0 h-screen w-64 flex flex-col z-40 transition-transform duration-300 ease-in-out md:transform-none shrink-0',
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
+          'fixed md:sticky md:top-0 h-screen flex flex-col z-40 transition-all duration-300 ease-in-out md:transform-none shrink-0',
+          isMobileMenuOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 w-64',
+          collapsed ? 'md:w-18' : 'md:w-64',
         )}
       >
         {/* Soft glass panel, tinted with the same blue as the canvas so the seam disappears */}
@@ -89,38 +99,44 @@ export default function AppLayout() {
         />
 
         {/* Brand + search */}
-        <div className="relative px-5 pt-6 pb-4">
-          <div className="flex items-center gap-2.5 mb-6 pt-10 md:pt-0">
+        <div className={cn('relative pt-6 pb-4 transition-all', collapsed ? 'px-3' : 'px-5')}>
+          <div className={cn('flex items-center gap-2.5 mb-6 pt-10 md:pt-0', collapsed && 'justify-center')}>
             <div
-              className="w-7 h-7 rounded-lg bg-white text-black flex items-center justify-center font-bold text-xs shadow-[0_2px_10px_rgba(255,255,255,0.15)]"
+              className="w-7 h-7 shrink-0 rounded-lg bg-white text-black flex items-center justify-center font-bold text-xs shadow-[0_2px_10px_rgba(255,255,255,0.15)]"
             >
               A
             </div>
-            <span className="font-semibold text-[15px] text-zinc-50 tracking-tight">Axora</span>
+            {!collapsed && <span className="font-semibold text-[15px] text-zinc-50 tracking-tight whitespace-nowrap">Axora</span>}
           </div>
 
-          <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
-            <input
-              value={historyFilter}
-              onChange={(e) => setHistoryFilter(e.target.value)}
-              placeholder="Search chats"
-              className="w-full bg-white/4 border border-white/8 rounded-lg pl-8 pr-8 py-1.5 text-xs text-zinc-100 placeholder-white/35 focus:outline-none focus:border-white/20 focus:bg-white/6 transition-colors"
-            />
-            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-white/25 font-mono">
-              ⌘K
-            </span>
-          </div>
+          {!collapsed && (
+            <div className="relative">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
+              <input
+                value={historyFilter}
+                onChange={(e) => setHistoryFilter(e.target.value)}
+                placeholder="Search chats"
+                className="w-full bg-white/4 border border-white/8 rounded-lg pl-8 pr-8 py-1.5 text-xs text-zinc-100 placeholder-white/35 focus:outline-none focus:border-white/20 focus:bg-white/6 transition-colors"
+              />
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-white/25 font-mono">
+                ⌘K
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Main Nav Items */}
-        <nav className="relative px-3 space-y-0.5">
+        <nav className={cn('relative space-y-0.5 transition-all', collapsed ? 'px-2.5' : 'px-3')}>
           {navItems.map((item) => (
             <NavLink
               key={item.name}
               to={item.path}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="relative flex items-center px-3 py-2 text-sm rounded-lg transition-colors group"
+              title={collapsed ? item.name : undefined}
+              className={cn(
+                'relative flex items-center py-2 text-sm rounded-lg transition-colors group',
+                collapsed ? 'justify-center px-0' : 'px-3',
+              )}
             >
               {({ isActive }) => (
                 <>
@@ -131,14 +147,16 @@ export default function AppLayout() {
                       className="absolute inset-0 rounded-lg bg-linear-to-r from-blue-500/15 to-transparent border border-white/10"
                     />
                   )}
-                  <span className="relative flex items-center gap-3">
+                  <span className={cn('relative flex items-center', !collapsed && 'gap-3')}>
                     <item.icon
                       size={16}
-                      className={cn('transition-colors', isActive ? 'text-[#6EA8FF]' : 'text-white/40 group-hover:text-white/75')}
+                      className={cn('shrink-0 transition-colors', isActive ? 'text-[#6EA8FF]' : 'text-white/40 group-hover:text-white/75')}
                     />
-                    <span className={cn('transition-colors', isActive ? 'font-medium text-zinc-50' : 'text-white/55 group-hover:text-white/85')}>
-                      {item.name}
-                    </span>
+                    {!collapsed && (
+                      <span className={cn('whitespace-nowrap transition-colors', isActive ? 'font-medium text-zinc-50' : 'text-white/55 group-hover:text-white/85')}>
+                        {item.name}
+                      </span>
+                    )}
                   </span>
                 </>
               )}
@@ -149,39 +167,46 @@ export default function AppLayout() {
         <div className="relative mx-5 my-4 h-px bg-linear-to-r from-white/10 via-white/5 to-transparent" />
 
         {/* Chat history */}
-        <div className="relative flex-1 overflow-y-auto px-3 pb-3">
-          {filteredHistoryGroups.length === 0 ? (
-            <div className="px-2 py-3 text-[13px] text-white/35">No chats match "{historyFilter}"</div>
-          ) : (
-            filteredHistoryGroups.map((group) => (
-              <div key={group.label} className="mb-5">
-                <div className="px-2 mb-1.5 text-[11px] text-white/30 font-medium uppercase tracking-wide">{group.label}</div>
-                <div className="space-y-0.5">
-                  {group.items.map((text) => (
-                    <button
-                      key={text}
-                      className="w-full text-left px-2 py-1.5 rounded-lg text-[13px] text-white/50 hover:text-white/90 hover:bg-white/5 transition-colors truncate"
-                      title={text}
-                    >
-                      {text}
-                    </button>
-                  ))}
+        {!collapsed && (
+          <div className="relative flex-1 overflow-y-auto px-3 pb-3">
+            {filteredHistoryGroups.length === 0 ? (
+              <div className="px-2 py-3 text-[13px] text-white/35">No chats match "{historyFilter}"</div>
+            ) : (
+              filteredHistoryGroups.map((group) => (
+                <div key={group.label} className="mb-5">
+                  <div className="px-2 mb-1.5 text-[11px] text-white/30 font-medium uppercase tracking-wide">{group.label}</div>
+                  <div className="space-y-0.5">
+                    {group.items.map((text) => (
+                      <button
+                        key={text}
+                        className="w-full text-left px-2 py-1.5 rounded-lg text-[13px] text-white/50 hover:text-white/90 hover:bg-white/5 transition-colors truncate"
+                        title={text}
+                      >
+                        {text}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              ))
+            )}
+          </div>
+        )}
+        {collapsed && <div className="flex-1" />}
 
         {/* Footer */}
-        <div className="relative px-5 py-4 border-t border-white/6">
+        <div className={cn('relative py-4 border-t border-white/6 transition-all', collapsed ? 'px-2.5' : 'px-5')}>
           <button
             onClick={() => {
               localStorage.removeItem('vanta_auth_status');
               navigate('/');
             }}
-            className="flex items-center gap-1.5 text-xs text-white/45 hover:text-white/85 transition-colors"
+            title={collapsed ? 'Visit site' : undefined}
+            className={cn(
+              'flex items-center text-xs text-white/45 hover:text-white/85 transition-colors',
+              collapsed ? 'justify-center w-full' : 'gap-1.5',
+            )}
           >
-            Visit site
+            {!collapsed && 'Visit site'}
             <ExternalLink size={12} />
           </button>
         </div>
@@ -196,7 +221,7 @@ export default function AppLayout() {
           transition={{ duration: 0.25 }}
           className="flex-1 flex flex-col min-h-0 overflow-hidden"
         >
-          <Outlet />
+          <Outlet context={{ setComposerFocused } satisfies AppShellContext} />
         </motion.div>
       </div>
 
