@@ -7,7 +7,7 @@ interface MagicCardProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 /** Magic UI-style card: a radial spotlight follows the cursor across the border and surface. */
 export const MagicCard = React.forwardRef<HTMLButtonElement, MagicCardProps>(
-  ({ className, children, spotlightColor = 'rgba(110,168,255,0.35)', onMouseMove, ...props }, ref) => {
+  ({ className, children, spotlightColor = 'rgba(143,188,234,0.35)', onMouseMove, ...props }, ref) => {
     const [pos, setPos] = useState({ x: 50, y: 50 });
     const [isHovering, setIsHovering] = useState(false);
     const localRef = useRef<HTMLButtonElement | null>(null);

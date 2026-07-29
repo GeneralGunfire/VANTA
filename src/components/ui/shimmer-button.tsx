@@ -8,7 +8,7 @@ interface ShimmerButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 /** Magic UI-style shimmer button: a conic-gradient ring rotates behind a solid inner fill. */
 export const ShimmerButton = React.forwardRef<HTMLButtonElement, ShimmerButtonProps>(
-  ({ className, children, shimmerColor = '#6EA8FF', background = '#0B0F1A', ...props }, ref) => {
+  ({ className, children, shimmerColor = '#8FBCEA', background = '#0A1424', ...props }, ref) => {
     return (
       <button
         ref={ref}

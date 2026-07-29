@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Home, LayoutTemplate, Compass, History, Wallet, Search, Menu, ExternalLink } from 'lucide-react';
+import { Home, LayoutTemplate, Compass, History, Wallet, Search, Menu, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { APP_SURFACE, SIDEBAR_SURFACE } from '../lib/surfaces';
 
 const navItems = [
   { name: 'Home', path: '/app/chat', icon: Home },
@@ -63,15 +64,18 @@ export default function AppLayout() {
   return (
     <div
       className="h-screen flex font-sans text-zinc-100 overflow-hidden relative isolate"
-      style={{ background: 'radial-gradient(ellipse 90% 70% at 22% 20%, #0B1428 0%, #060A16 45%, #04060D 100%)' }}
+      style={{ background: APP_SURFACE }}
     >
       {/* Mobile Header & Menu Toggle */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 backdrop-blur-md border-b border-white/8 flex items-center justify-between px-4 z-50 bg-[#060A16]/90">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-white text-black flex items-center justify-center font-bold text-xs">
-            A
+      <div
+        className="md:hidden fixed top-0 left-0 right-0 h-16 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-4 z-50"
+        style={{ background: SIDEBAR_SURFACE }}
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-full bg-vanta-navy text-white flex items-center justify-center font-serif font-bold text-sm">
+            V
           </div>
-          <span className="font-semibold text-lg text-zinc-50">Axora</span>
+          <span className="font-serif font-bold text-lg text-zinc-50 tracking-tight">Vanta</span>
         </div>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -91,22 +95,22 @@ export default function AppLayout() {
         )}
       >
         {/* Soft glass panel, tinted with the same blue as the canvas so the seam disappears */}
-        <div className="absolute inset-0 bg-white/1.5 backdrop-blur-sm border-r border-white/6" />
+        <div className="absolute inset-0 border-r border-white/10" style={{ background: SIDEBAR_SURFACE }} />
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0"
-          style={{ background: 'radial-gradient(ellipse 70% 40% at 0% 0%, rgba(45,120,255,0.08), transparent 70%)' }}
+          style={{ background: 'radial-gradient(ellipse 70% 40% at 0% 0%, rgba(30,90,168,0.22), transparent 70%)' }}
         />
 
         {/* Brand + search */}
         <div className={cn('relative pt-6 pb-4 transition-all', collapsed ? 'px-3' : 'px-5')}>
           <div className={cn('flex items-center gap-2.5 mb-6 pt-10 md:pt-0', collapsed && 'justify-center')}>
-            <div
-              className="w-7 h-7 shrink-0 rounded-lg bg-white text-black flex items-center justify-center font-bold text-xs shadow-[0_2px_10px_rgba(255,255,255,0.15)]"
-            >
-              A
+            <div className="w-9 h-9 shrink-0 rounded-xl bg-vanta-navy text-white flex items-center justify-center font-serif font-bold text-lg shadow-[0_8px_20px_-8px_rgba(30,90,168,0.9)]">
+              V
             </div>
-            {!collapsed && <span className="font-semibold text-[15px] text-zinc-50 tracking-tight whitespace-nowrap">Axora</span>}
+            {!collapsed && (
+              <span className="font-serif font-bold text-lg text-zinc-50 tracking-tight whitespace-nowrap">Vanta</span>
+            )}
           </div>
 
           {!collapsed && (
@@ -116,7 +120,7 @@ export default function AppLayout() {
                 value={historyFilter}
                 onChange={(e) => setHistoryFilter(e.target.value)}
                 placeholder="Search chats"
-                className="w-full bg-white/4 border border-white/8 rounded-lg pl-8 pr-8 py-1.5 text-xs text-zinc-100 placeholder-white/35 focus:outline-none focus:border-white/20 focus:bg-white/6 transition-colors"
+                className="w-full bg-white/5 border border-white/10 rounded-lg pl-8 pr-8 py-1.5 text-xs text-zinc-100 placeholder-white/35 focus:outline-none focus:border-white/20 focus:bg-white/6 transition-colors"
               />
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-white/25 font-mono">
                 ⌘K
@@ -150,7 +154,7 @@ export default function AppLayout() {
                   <span className={cn('relative flex items-center', !collapsed && 'gap-3')}>
                     <item.icon
                       size={16}
-                      className={cn('shrink-0 transition-colors', isActive ? 'text-[#6EA8FF]' : 'text-white/40 group-hover:text-white/75')}
+                      className={cn('shrink-0 transition-colors', isActive ? 'text-[#8FBCEA]' : 'text-white/40 group-hover:text-white/75')}
                     />
                     {!collapsed && (
                       <span className={cn('whitespace-nowrap transition-colors', isActive ? 'font-medium text-zinc-50' : 'text-white/55 group-hover:text-white/85')}>
@@ -194,20 +198,20 @@ export default function AppLayout() {
         {collapsed && <div className="flex-1" />}
 
         {/* Footer */}
-        <div className={cn('relative py-4 border-t border-white/6 transition-all', collapsed ? 'px-2.5' : 'px-5')}>
+        <div className={cn('relative py-4 border-t border-white/10 transition-all', collapsed ? 'px-2.5' : 'px-5')}>
           <button
             onClick={() => {
               localStorage.removeItem('vanta_auth_status');
               navigate('/');
             }}
-            title={collapsed ? 'Visit site' : undefined}
+            title={collapsed ? 'Sign out' : undefined}
             className={cn(
-              'flex items-center text-xs text-white/45 hover:text-white/85 transition-colors',
-              collapsed ? 'justify-center w-full' : 'gap-1.5',
+              'group w-full flex items-center justify-center rounded-lg border border-white/10 bg-white/5 py-2.5 text-xs font-semibold text-white/70 transition-all hover:border-[#8FBCEA]/40 hover:bg-white/10 hover:text-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8FBCEA]/50',
+              collapsed ? 'px-0' : 'gap-2 px-3',
             )}
           >
-            {!collapsed && 'Visit site'}
-            <ExternalLink size={12} />
+            <LogOut size={14} className="shrink-0 text-white/50 transition-colors group-hover:text-[#8FBCEA]" />
+            {!collapsed && <span>Sign out</span>}
           </button>
         </div>
       </div>

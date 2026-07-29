@@ -6,7 +6,7 @@
  */
 
 /** The page canvas behind chat and ledger content — the deepest surface. */
-export const APP_SURFACE = 'linear-gradient(170deg, #050B14 0%, #03070E 55%, #010306 100%)';
+export const APP_SURFACE = 'linear-gradient(170deg, #0A1424 0%, #060E1B 55%, #030710 100%)';
 
 /** Navigation panel — deliberately lighter than the canvas so the two read apart. */
 export const SIDEBAR_SURFACE = 'linear-gradient(180deg, #0F1C31 0%, #0B1526 55%, #070D18 100%)';

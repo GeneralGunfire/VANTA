@@ -214,7 +214,7 @@ export default function LedgerPage() {
                     <th className="text-right font-semibold px-4 py-3">Running Balance</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/8">
+                <tbody className="divide-y divide-white/10">
                   {ledgerRows.map((row) => (
                     <motion.tr
                       key={row.tx.id}
