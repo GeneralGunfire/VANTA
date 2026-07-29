@@ -10,6 +10,8 @@ import AuthPage from './pages/AuthPage';
 import AppLayout from './layouts/AppLayout';
 import ChatPage from './pages/ChatPage';
 import LedgerPage from './pages/LedgerPage';
+import TemplatesPage from './pages/TemplatesPage';
+import ExplorePage from './pages/ExplorePage';
 import McpRegistryPage from './pages/McpRegistryPage';
 
 export default function App() {
@@ -25,8 +27,8 @@ export default function App() {
           <Route index element={<Navigate to="/app/chat" replace />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="ledger" element={<LedgerPage />} />
-          <Route path="templates" element={<Navigate to="/app/chat" replace />} />
-          <Route path="explore" element={<Navigate to="/app/chat" replace />} />
+          <Route path="templates" element={<TemplatesPage />} />
+          <Route path="explore" element={<ExplorePage />} />
           <Route path="history" element={<Navigate to="/app/chat" replace />} />
         </Route>
         

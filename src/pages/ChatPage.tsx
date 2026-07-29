@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { Upload, AlertTriangle, ArrowUpRight, ArrowDownLeft, RefreshCw, ImagePlus, Globe, Mic } from 'lucide-react';
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
@@ -62,6 +62,19 @@ export default function ChatPage() {
 
   // A route change while focused would otherwise strand the sidebar collapsed.
   useEffect(() => () => setComposerFocused(false), [setComposerFocused]);
+
+  // Templates and Explore hand a phrase over via router state. Load it into the
+  // composer (never auto-send — the amounts are examples the owner must correct)
+  // and clear the state so a refresh or back-navigation doesn't re-apply it.
+  const location = useLocation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    const prefill = (location.state as { prefill?: string } | null)?.prefill;
+    if (!prefill) return;
+    setInput(prefill);
+    composerRef.current?.focus();
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
 
   function addMessage(msg: DistributiveOmit<Message, 'id' | 'timestamp'> & { id?: string }) {
     const timeStr = new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
@@ -214,10 +227,10 @@ export default function ChatPage() {
           aria-hidden="true"
           className="absolute -inset-px rounded-2xl opacity-40 blur-[2px] transition-opacity duration-300 group-focus-within:opacity-90"
           style={{
-            background: 'linear-gradient(120deg, rgba(110,168,255,0.5), rgba(255,255,255,0.08) 30%, rgba(110,168,255,0.5) 60%, rgba(255,255,255,0.08))',
+            background: 'linear-gradient(120deg, rgba(143,188,234,0.55), rgba(255,255,255,0.08) 30%, rgba(143,188,234,0.55) 60%, rgba(255,255,255,0.08))',
           }}
         />
-        <div className="relative rounded-2xl bg-[#0B0F1A]/90 border border-white/10 group-focus-within:border-white/20 transition-colors backdrop-blur-sm">
+        <div className="relative rounded-2xl bg-[#0A1424]/90 border border-white/10 group-focus-within:border-white/20 transition-colors backdrop-blur-sm">
         <input
           ref={composerRef}
           type="text"
@@ -265,8 +278,6 @@ export default function ChatPage() {
   );
 
   if (isEmpty) {
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
 
     return (
       <div className="flex-1 flex flex-col h-full relative overflow-y-auto overflow-x-hidden">
@@ -277,7 +288,7 @@ export default function ChatPage() {
           transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
           className="pointer-events-none absolute inset-0"
           style={{
-            background: 'radial-gradient(ellipse 45% 35% at 50% 32%, rgba(45,120,255,0.16), transparent 70%)',
+            background: 'radial-gradient(ellipse 45% 35% at 50% 32%, rgba(30,90,168,0.20), transparent 70%)',
           }}
         />
         <div className="relative flex-1 flex flex-col items-center justify-center px-6 py-16 min-h-full">
@@ -297,7 +308,7 @@ export default function ChatPage() {
               animate={{ opacity: [0.35, 0.7, 0.35], scale: [0.9, 1.08, 0.9] }}
               transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
               className="absolute inset-6 rounded-full blur-2xl"
-              style={{ background: 'radial-gradient(circle, rgba(64,140,255,0.9) 0%, rgba(20,80,200,0.4) 55%, transparent 75%)' }}
+              style={{ background: 'radial-gradient(circle, rgba(143,188,234,0.9) 0%, rgba(30,90,168,0.45) 55%, transparent 75%)' }}
             />
 
             {/* Three counter-rotating ring layers */}
@@ -312,7 +323,7 @@ export default function ChatPage() {
                 className="absolute inset-0 w-full h-full"
                 animate={{ rotate: layer.dir }}
                 transition={{ duration: layer.dur, repeat: Infinity, ease: 'linear' }}
-                style={{ filter: 'drop-shadow(0 0 6px rgba(64,140,255,0.9)) drop-shadow(0 0 18px rgba(30,100,240,0.5))' }}
+                style={{ filter: 'drop-shadow(0 0 6px rgba(143,188,234,0.9)) drop-shadow(0 0 18px rgba(30,90,168,0.55))' }}
               >
                 <defs>
                   <linearGradient id={`ringGrad${li}`} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -356,9 +367,12 @@ export default function ChatPage() {
           </motion.div>
 
           <h1 className="text-2xl md:text-3xl font-semibold text-zinc-50 text-center mb-10">
-            <TextGenerateEffect words={`${greeting}, User.`} />
+            <TextGenerateEffect words="What happened in your business today?" />
             <br />
-            <TextGenerateEffect words="Can I help you with anything?" className="text-white/70" />
+            <TextGenerateEffect
+              words="Tell me in plain language — I'll keep the books."
+              className="text-white/70"
+            />
           </h1>
 
           <motion.div
