@@ -137,25 +137,25 @@ export default function ChatPage() {
           return (
             <div
               key={item.id ?? idx}
-              className="border-l-4 border-l-[#6FA3DE] bg-white/4 p-5 rounded-r-xl border-t border-r border-b border-white/10 backdrop-blur-sm"
+              className="border-l-4 border-l-amber-500 bg-amber-50 p-5 rounded-r-xl border-t border-r border-b border-amber-200"
             >
               <div className="flex items-center justify-between mb-3">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-[#8FBCEA] flex items-center gap-2">
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-amber-700 flex items-center gap-2">
                   <AlertTriangle size={14} />
                   Needs review
                 </div>
               </div>
-              <p className="text-sm text-zinc-100 leading-relaxed mb-3">
+              <p className="text-sm text-[#26282B] leading-relaxed mb-3">
                 {item.description || item.raw_input || 'Could not confidently parse this transaction.'}
               </p>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/50">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#6B6E73]">
                 {item.amount !== null && (
                   <span>
-                    Best guess: <span className="font-mono font-bold text-[#8FBCEA]">R{item.amount.toFixed(2)}</span>
+                    Best guess: <span className="font-mono font-semibold text-amber-700">R{item.amount.toFixed(2)}</span>
                   </span>
                 )}
                 <span>
-                  Category: <span className="font-semibold text-zinc-200">{item.category}</span>
+                  Category: <span className="font-medium text-[#26282B]">{item.category}</span>
                 </span>
               </div>
             </div>
@@ -165,22 +165,22 @@ export default function ChatPage() {
         return (
           <div
             key={item.id ?? idx}
-            className="border-l-4 border-l-vanta-navy bg-white/4 p-6 border-t border-r border-b border-white/10 backdrop-blur-sm rounded-r-xl space-y-4"
+            className="border-l-4 border-l-[#26282B] bg-white p-6 border-t border-r border-b border-[#E5E6E8] rounded-r-xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.08)] space-y-4"
           >
             <div className="flex justify-between items-start gap-4">
               <div>
-                <div className="text-[10px] uppercase tracking-widest text-white/45 mb-1 font-bold">Category</div>
-                <div className="text-lg font-serif font-bold text-zinc-100">{item.category}</div>
+                <div className="text-[10px] uppercase tracking-widest text-[#8A8D92] mb-1 font-semibold">Category</div>
+                <div className="text-lg font-serif text-[#1B1C1E]">{item.category}</div>
               </div>
               <div className="text-right">
-                <div className="text-[10px] uppercase tracking-widest text-white/45 mb-1 font-bold">Amount</div>
-                <div className="text-xl font-mono font-bold text-[#8FBCEA] flex items-center gap-1 justify-end">
+                <div className="text-[10px] uppercase tracking-widest text-[#8A8D92] mb-1 font-semibold">Amount</div>
+                <div className="text-xl font-mono font-semibold text-[#1B1C1E] flex items-center gap-1 justify-end">
                   {item.direction === 'in' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
                   R{(item.amount ?? 0).toFixed(2)}
                 </div>
               </div>
             </div>
-            {item.description && <p className="text-sm text-white/55">{item.description}</p>}
+            {item.description && <p className="text-sm text-[#6B6E73]">{item.description}</p>}
           </div>
         );
       })}
@@ -197,12 +197,12 @@ export default function ChatPage() {
     },
     {
       title: 'Analytics',
-      body: 'Analytics empowers individuals and businesses to make smarter',
+      body: 'Analytics empowers individuals and businesses to make smarter decisions',
       prompt: "how's business this week?",
     },
     {
       title: 'Spending',
-      body: 'Spending is the way individuals and businesses use their financial',
+      body: 'Spending is the way individuals and businesses use their financial resources',
       prompt: 'bought flour for R180',
     },
   ];
@@ -221,16 +221,7 @@ export default function ChatPage() {
         }}
       />
 
-      <div className="relative rounded-2xl">
-        {/* Animated glow ring, brightens on focus */}
-        <div
-          aria-hidden="true"
-          className="absolute -inset-px rounded-2xl opacity-40 blur-[2px] transition-opacity duration-300 group-focus-within:opacity-90"
-          style={{
-            background: 'linear-gradient(120deg, rgba(143,188,234,0.55), rgba(255,255,255,0.08) 30%, rgba(143,188,234,0.55) 60%, rgba(255,255,255,0.08))',
-          }}
-        />
-        <div className="relative rounded-2xl bg-[#0A1424]/90 border border-white/10 group-focus-within:border-white/20 transition-colors backdrop-blur-sm">
+      <div className="relative rounded-2xl bg-white border border-[#E5E6E8] shadow-[0_24px_60px_-24px_rgba(20,20,22,0.45),0_2px_8px_-2px_rgba(20,20,22,0.08)] group-focus-within:border-[#B8BABD] group-focus-within:shadow-[0_28px_70px_-24px_rgba(20,20,22,0.5),0_2px_8px_-2px_rgba(20,20,22,0.1)] transition-all">
         <input
           ref={composerRef}
           type="text"
@@ -239,27 +230,27 @@ export default function ChatPage() {
           onFocus={() => setComposerFocused(true)}
           onBlur={() => setComposerFocused(false)}
           placeholder="Message AI Chat…"
-          className="w-full bg-transparent pt-4 pb-12 px-4 text-zinc-100 placeholder-white/35 focus:outline-none text-sm"
+          className="w-full bg-transparent pt-4.5 pb-12 px-4.5 text-[#26282B] placeholder-[#9B9EA2] focus:outline-none text-[15px]"
         />
         <div className="absolute left-3 bottom-2.5 flex items-center gap-1">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             title="Attach a file"
-            className="p-2 text-white/45 hover:text-white/80 transition-colors rounded-lg hover:bg-white/10"
+            className="p-2 text-[#8A8D92] hover:text-[#26282B] transition-colors rounded-lg hover:bg-black/5"
           >
             <Upload size={16} />
           </button>
           <button
             type="button"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-white/60 hover:text-white/90 hover:bg-white/10 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-[#6B6E73] hover:text-[#26282B] hover:bg-black/5 rounded-lg transition-colors"
           >
             <ImagePlus size={15} />
             Create an image
           </button>
           <button
             type="button"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-white/60 hover:text-white/90 hover:bg-white/10 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-[#6B6E73] hover:text-[#26282B] hover:bg-black/5 rounded-lg transition-colors"
           >
             <Globe size={15} />
             Search the web
@@ -268,54 +259,43 @@ export default function ChatPage() {
         <button
           type="submit"
           disabled={!input.trim() || isLoading}
-          className="absolute right-2.5 bottom-2.5 w-8 h-8 rounded-full bg-white text-black flex items-center justify-center hover:bg-white/85 transition-all disabled:opacity-30 active:scale-[0.95]"
+          className="absolute right-2.5 bottom-2.5 w-8 h-8 rounded-full bg-[#26282B] text-white flex items-center justify-center hover:bg-[#1B1C1E] transition-all disabled:opacity-30 active:scale-[0.95]"
         >
           <Mic size={14} />
         </button>
-        </div>
       </div>
     </form>
   );
 
   if (isEmpty) {
-
     return (
       <div className="flex-1 flex flex-col h-full relative overflow-y-auto overflow-x-hidden">
-        {/* Faint blue haze drifting across the whole canvas */}
-        <motion.div
-          aria-hidden="true"
-          animate={{ opacity: [0.25, 0.45, 0.25] }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background: 'radial-gradient(ellipse 45% 35% at 50% 32%, rgba(30,90,168,0.20), transparent 70%)',
-          }}
-        />
         <div className="relative flex-1 flex flex-col items-center justify-center px-6 py-16 min-h-full">
-          {/* Blue energy orb — woven glowing wireframe rings, like the reference */}
+          {/* Ink-toned energy orb — woven wireframe rings, tuned dark so they read against the light marble canvas */}
           <motion.div
             initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1, y: [0, -8, 0] }}
+            animate={{ opacity: 1, scale: 1, y: [0, -10, 0] }}
             transition={{
               opacity: { duration: 0.7 },
               scale: { duration: 0.7 },
               y: { duration: 6, repeat: Infinity, ease: 'easeInOut' },
             }}
-            className="relative w-52 h-52 mb-4"
+            className="relative w-72 h-72 mb-6"
           >
-            {/* Core glow */}
+            {/* Soft core shadow, grounds the orb against the light canvas */}
             <motion.div
-              animate={{ opacity: [0.35, 0.7, 0.35], scale: [0.9, 1.08, 0.9] }}
+              animate={{ opacity: [0.3, 0.5, 0.3], scale: [0.9, 1.05, 0.9] }}
               transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute inset-6 rounded-full blur-2xl"
-              style={{ background: 'radial-gradient(circle, rgba(143,188,234,0.9) 0%, rgba(30,90,168,0.45) 55%, transparent 75%)' }}
+              className="absolute inset-8 rounded-full blur-3xl"
+              style={{ background: 'radial-gradient(circle, rgba(38,40,43,0.4) 0%, rgba(38,40,43,0.12) 55%, transparent 75%)' }}
             />
 
-            {/* Three counter-rotating ring layers */}
+            {/* Four counter-rotating ring layers, charcoal ink on white/pale-stone gradient */}
             {[
               { dur: 16, dir: 360, tilt: 0, delayRings: [0, 30, 60] },
               { dur: 22, dir: -360, tilt: 45, delayRings: [15, 50, 80] },
               { dur: 28, dir: 360, tilt: 90, delayRings: [10, 40, 70] },
+              { dur: 34, dir: -360, tilt: 135, delayRings: [5, 55, 95] },
             ].map((layer, li) => (
               <motion.svg
                 key={li}
@@ -323,14 +303,14 @@ export default function ChatPage() {
                 className="absolute inset-0 w-full h-full"
                 animate={{ rotate: layer.dir }}
                 transition={{ duration: layer.dur, repeat: Infinity, ease: 'linear' }}
-                style={{ filter: 'drop-shadow(0 0 6px rgba(143,188,234,0.9)) drop-shadow(0 0 18px rgba(30,90,168,0.55))' }}
+                style={{ filter: 'drop-shadow(0 3px 8px rgba(20,20,22,0.3))' }}
               >
                 <defs>
                   <linearGradient id={`ringGrad${li}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#EAF4FF" stopOpacity="0.95" />
-                    <stop offset="35%" stopColor="#5CA8FF" stopOpacity="0.9" />
-                    <stop offset="70%" stopColor="#1E5AC8" stopOpacity="0.5" />
-                    <stop offset="100%" stopColor="#0A2C6E" stopOpacity="0.1" />
+                    <stop offset="0%" stopColor="#1B1C1E" stopOpacity="0.95" />
+                    <stop offset="45%" stopColor="#5A5D62" stopOpacity="0.75" />
+                    <stop offset="75%" stopColor="#9B9EA2" stopOpacity="0.45" />
+                    <stop offset="100%" stopColor="#C7CACD" stopOpacity="0.12" />
                   </linearGradient>
                 </defs>
                 {layer.delayRings.map((rot, ri) => (
@@ -338,42 +318,25 @@ export default function ChatPage() {
                     key={ri}
                     cx="100"
                     cy="100"
-                    rx="78"
-                    ry={34 + ri * 10}
+                    rx="82"
+                    ry={32 + ri * 11}
                     fill="none"
                     stroke={`url(#ringGrad${li})`}
-                    strokeWidth={ri === 0 ? 1.6 : 0.9}
+                    strokeWidth={ri === 0 ? 2 : 1.1}
                     transform={`rotate(${layer.tilt + rot} 100 100)`}
-                    opacity={0.9 - ri * 0.25}
+                    opacity={0.95 - ri * 0.2}
                   />
                 ))}
               </motion.svg>
             ))}
-
-            {/* Fine particle shimmer */}
-            <motion.div
-              animate={{ opacity: [0.2, 0.5, 0.2] }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute inset-10 rounded-full"
-              style={{
-                backgroundImage:
-                  'radial-gradient(rgba(140,190,255,0.8) 0.5px, transparent 0.5px), radial-gradient(rgba(90,150,255,0.6) 0.5px, transparent 0.5px)',
-                backgroundSize: '14px 14px, 9px 9px',
-                backgroundPosition: '0 0, 5px 7px',
-                maskImage: 'radial-gradient(circle, black 30%, transparent 70%)',
-                WebkitMaskImage: 'radial-gradient(circle, black 30%, transparent 70%)',
-              }}
-            />
           </motion.div>
 
-          <h1 className="text-2xl md:text-3xl font-semibold text-zinc-50 text-center mb-10">
+          <h1 className="text-3xl md:text-4xl font-serif text-[#1B1C1E] text-center mb-3 leading-tight">
             <TextGenerateEffect words="What happened in your business today?" />
-            <br />
-            <TextGenerateEffect
-              words="Tell me in plain language — I'll keep the books."
-              className="text-white/70"
-            />
           </h1>
+          <p className="text-base text-[#6B6E73] text-center mb-10">
+            <TextGenerateEffect words="Tell me in plain language — I'll keep the books." />
+          </p>
 
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -388,15 +351,17 @@ export default function ChatPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.25 }}
-            className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl w-full mt-6"
+            className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl w-full mt-8"
           >
             {suggestionCards.map((card) => (
               <MagicCard
                 key={card.title}
+                spotlightColor="rgba(20,20,22,0.08)"
                 onClick={() => (card.prompt ? handleQuickPrompt(card.prompt) : fileInputRef.current?.click())}
+                className="bg-white border-[#E5E6E8] hover:border-[#C7CACD] shadow-[0_10px_28px_-14px_rgba(20,20,22,0.22)] hover:shadow-[0_16px_36px_-14px_rgba(20,20,22,0.3)] hover:-translate-y-0.5 transition-transform p-5"
               >
-                <div className="text-sm font-semibold text-white mb-1">{card.title}</div>
-                <div className="text-xs text-white/50 leading-relaxed">{card.body}</div>
+                <div className="text-[15px] font-medium text-[#1B1C1E] mb-1.5">{card.title}</div>
+                <div className="text-[13px] text-[#8A8D92] leading-relaxed">{card.body}</div>
               </MagicCard>
             ))}
           </motion.div>
@@ -418,17 +383,17 @@ export default function ChatPage() {
               className={cn('flex flex-col', msg.role === 'user' ? 'items-end' : 'items-start')}
             >
               {msg.role === 'user' && (
-                <div className="bg-vanta-navy text-white p-4 rounded-2xl rounded-br-md max-w-xl shadow-[0_10px_24px_-12px_rgba(30,90,168,0.8)]">
+                <div className="bg-[#26282B] text-white p-4 rounded-2xl rounded-br-md max-w-xl shadow-[0_10px_24px_-12px_rgba(20,20,22,0.4)]">
                   {msg.content}
                 </div>
               )}
 
               {msg.role === 'error' && (
                 <div className="flex gap-4 max-w-2xl w-full">
-                  <div className="w-9 h-9 rounded-lg bg-amber-400/10 border border-amber-400/40 text-amber-300 shrink-0 flex items-center justify-center font-serif font-bold text-sm">
+                  <div className="w-9 h-9 rounded-lg bg-amber-50 border border-amber-300 text-amber-600 shrink-0 flex items-center justify-center font-serif font-semibold text-sm">
                     !
                   </div>
-                  <div className="flex-1 bg-amber-400/5 p-5 border border-amber-400/30 rounded-2xl rounded-tl-md text-amber-200 text-sm">
+                  <div className="flex-1 bg-amber-50 p-5 border border-amber-200 rounded-2xl rounded-tl-md text-amber-800 text-sm">
                     {msg.content}
                   </div>
                 </div>
@@ -436,11 +401,11 @@ export default function ChatPage() {
 
               {msg.role === 'assistant' && (
                 <div className="flex gap-4 max-w-2xl w-full">
-                  <div className="w-9 h-9 rounded-lg bg-vanta-navy text-white shrink-0 flex items-center justify-center font-serif font-bold text-sm shadow-[0_6px_16px_-6px_rgba(30,90,168,0.9)]">
+                  <div className="w-9 h-9 rounded-lg bg-[#26282B] text-white shrink-0 flex items-center justify-center font-serif font-semibold text-sm shadow-[0_6px_16px_-6px_rgba(20,20,22,0.4)]">
                     V
                   </div>
-                  <div className="flex-1 bg-white/5 p-5 border border-white/10 rounded-2xl rounded-tl-md backdrop-blur-sm">
-                    <div className="text-zinc-100 text-sm leading-relaxed">{msg.content}</div>
+                  <div className="flex-1 bg-white p-5 border border-[#E5E6E8] rounded-2xl rounded-tl-md shadow-[0_2px_12px_-6px_rgba(0,0,0,0.08)]">
+                    <div className="text-[#26282B] text-sm leading-relaxed">{msg.content}</div>
                     {msg.transactions && renderTransactionCards(msg.transactions)}
                   </div>
                 </div>
@@ -450,10 +415,10 @@ export default function ChatPage() {
 
           {isLoading && (
             <div className="flex gap-4 max-w-2xl">
-              <div className="w-9 h-9 rounded-lg bg-vanta-navy text-white shrink-0 flex items-center justify-center animate-pulse">
+              <div className="w-9 h-9 rounded-lg bg-[#26282B] text-white shrink-0 flex items-center justify-center animate-pulse">
                 <RefreshCw size={15} className="animate-spin" />
               </div>
-              <div className="flex-1 bg-white/5 p-4 border border-white/10 rounded-2xl rounded-tl-md text-white/50 text-sm italic flex items-center backdrop-blur-sm">
+              <div className="flex-1 bg-white p-4 border border-[#E5E6E8] rounded-2xl rounded-tl-md text-[#8A8D92] text-sm italic flex items-center shadow-[0_2px_12px_-6px_rgba(0,0,0,0.08)]">
                 Thinking…
               </div>
             </div>

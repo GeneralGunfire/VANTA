@@ -1,19 +1,21 @@
 /**
- * Shared dark surfaces for the signed-in app shell.
+ * Shared light surfaces for the signed-in app shell.
  *
- * All three are the same blue-tinted charcoal ramp at different depths, so the
- * sidebar, canvas and raised cards stack readably without drifting apart.
+ * Modeled on a soft grayscale marble/silk gradient — charcoal drifting into
+ * pale stone, no blue tint. The sidebar, canvas and raised cards are the same
+ * ramp at different depths so they stack readably without drifting apart.
  */
 
-/** The page canvas behind chat and ledger content — the deepest surface. */
-export const APP_SURFACE = 'linear-gradient(170deg, #0A1424 0%, #060E1B 55%, #030710 100%)';
+/** The page canvas behind chat and ledger content — smoky charcoal folding into pale stone. */
+export const APP_SURFACE =
+  'linear-gradient(165deg, #4B4E54 0%, #7C8086 22%, #A8ACB1 45%, #C7CACD 68%, #DDDFE1 100%)';
 
-/** Navigation panel — deliberately lighter than the canvas so the two read apart. */
-export const SIDEBAR_SURFACE = 'linear-gradient(180deg, #0F1C31 0%, #0B1526 55%, #070D18 100%)';
+/** Navigation panel — a shade darker than the canvas so the two read apart. */
+export const SIDEBAR_SURFACE = 'linear-gradient(180deg, #3A3D42 0%, #55585D 55%, #6E7176 100%)';
 
 /** Raised cards that should lift clearly off the canvas. */
-export const RAISED_SURFACE = 'linear-gradient(155deg, #22334D 0%, #16243A 48%, #0C1524 100%)';
+export const RAISED_SURFACE = '#FFFFFF';
 
-/** Soft blue wash dropped behind hero content so the canvas isn't a flat block. */
+/** Soft charcoal wash dropped behind hero content so the canvas isn't a flat block. */
 export const CANVAS_GLOW =
-  'radial-gradient(ellipse 55% 40% at 50% 0%, rgba(30,90,168,0.14), transparent 70%)';
+  'radial-gradient(ellipse 60% 45% at 30% 0%, rgba(30,32,36,0.14), transparent 70%)';
