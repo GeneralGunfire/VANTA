@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Search, AlertTriangle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
-import { SearchBar } from '../components/ui/search-bar';
 import TransactionDetailModal, { Transaction } from '../components/TransactionDetailModal';
 import AddTransactionModal from '../components/AddTransactionModal';
 
@@ -115,54 +114,57 @@ export default function LedgerPage() {
       <div className="relative max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-6">
           <div>
-            <h1 className="text-2xl font-serif text-[#1B1C1E] tracking-tight">Accounting General Ledger</h1>
-            <p className="text-sm text-[#6B6E73] mt-1">Every sale and expense you've recorded</p>
+            <h1 className="text-2xl font-serif text-vanta-black tracking-tight">Ledger</h1>
+            <p className="text-sm text-vanta-gray mt-1">Every sale and expense you've recorded</p>
           </div>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="bg-[#26282B] text-white px-5 py-2.5 text-xs font-semibold hover:bg-[#1B1C1E] transition-all flex items-center gap-2 rounded-lg active:scale-[0.98]"
+            className="bg-vanta-navy text-white px-5 py-2.5 text-xs font-semibold hover:bg-vanta-navy-dark transition-all flex items-center gap-2 rounded-lg active:scale-[0.98]"
           >
             <Plus size={16} />
             Add Transaction
           </button>
         </div>
 
-        <div className="bg-white border border-[#E5E6E8] rounded-2xl overflow-hidden shadow-[0_2px_16px_-8px_rgba(0,0,0,0.1)]">
+        <div className="bg-white border border-vanta-border rounded-2xl overflow-hidden">
           {/* Header info block */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-3 px-6 py-5 border-b border-[#EDEDEE] text-xs">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-3 px-6 py-5 border-b border-vanta-border text-xs">
             <div>
-              <div className="text-[#9B9EA2] mb-0.5">Company Name</div>
-              <div className="text-[#26282B] font-medium">Vanta Books</div>
+              <div className="text-vanta-gray mb-0.5">Company Name</div>
+              <div className="text-vanta-black font-medium">Vanta Books</div>
             </div>
             <div>
-              <div className="text-[#9B9EA2] mb-0.5">Fiscal Year</div>
-              <div className="text-[#26282B] font-medium">{new Date().getFullYear()}</div>
+              <div className="text-vanta-gray mb-0.5">Fiscal Year</div>
+              <div className="text-vanta-black font-medium">{new Date().getFullYear()}</div>
             </div>
             <div>
-              <div className="text-[#9B9EA2] mb-0.5">Currency</div>
-              <div className="text-[#26282B] font-medium">ZAR</div>
+              <div className="text-vanta-gray mb-0.5">Currency</div>
+              <div className="text-vanta-black font-medium">ZAR</div>
             </div>
             <div>
-              <div className="text-[#9B9EA2] mb-0.5">Account Type</div>
-              <div className="text-[#26282B] font-medium">Operating Account</div>
+              <div className="text-vanta-gray mb-0.5">Account Type</div>
+              <div className="text-vanta-black font-medium">Operating Account</div>
             </div>
             <div>
-              <div className="text-[#9B9EA2] mb-0.5">Opening Balance</div>
-              <div className="text-[#26282B] font-mono font-semibold">R{fmt(OPENING_BALANCE)}</div>
+              <div className="text-vanta-gray mb-0.5">Opening Balance</div>
+              <div className="text-vanta-black font-mono font-semibold">R{fmt(OPENING_BALANCE)}</div>
             </div>
           </div>
 
           {/* Filters */}
-          <div className="flex items-center justify-between gap-6 flex-wrap px-6 py-4 border-b border-[#EDEDEE]">
-            <div className="flex-1 min-w-65">
-              <SearchBar
+          <div className="flex items-center justify-between gap-6 flex-wrap px-6 py-4 border-b border-vanta-border">
+            <div className="relative flex-1 min-w-65">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-vanta-gray" />
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search your transactions"
-                suggestions={TRANSACTION_CATEGORIES}
-                onChange={setSearchQuery}
+                aria-label="Search your transactions"
+                className="w-full bg-white border border-vanta-border rounded-full pl-9 pr-3 py-2 text-sm text-vanta-black placeholder-vanta-gray focus:outline-none focus:border-vanta-navy/40 transition-colors"
               />
             </div>
 
-            <div className="flex items-center gap-1.5 bg-[#F4F4F5] p-1.5 border border-[#E5E6E8] rounded-full text-xs">
+            <div className="flex items-center gap-1.5 bg-vanta-sidebar p-1.5 border border-vanta-border rounded-full text-xs">
               {(
                 [
                   ['all', 'All'],
@@ -177,8 +179,8 @@ export default function LedgerPage() {
                   className={cn(
                     'px-4 py-2 font-medium transition-all rounded-full whitespace-nowrap',
                     filterType === key
-                      ? 'bg-white text-[#1B1C1E] border border-[#E5E6E8] shadow-sm'
-                      : 'text-[#6B6E73] hover:text-[#1B1C1E] border border-transparent',
+                      ? 'bg-white text-vanta-black border border-vanta-border shadow-sm'
+                      : 'text-vanta-gray hover:text-vanta-black border border-transparent',
                   )}
                 >
                   {label}
@@ -188,22 +190,23 @@ export default function LedgerPage() {
           </div>
 
           {isLoading ? (
-            <div className="text-center py-16 text-[#8A8D92] text-sm italic">Loading…</div>
+            <div className="text-center py-16 text-vanta-gray text-sm italic">Loading…</div>
           ) : loadError ? (
-            <div role="alert" className="text-center py-16 text-amber-700 text-sm px-6">
+            <div role="alert" className="flex items-center justify-center gap-2 py-16 text-vanta-black text-sm px-6">
+              <AlertTriangle size={16} />
               Couldn't load transactions: {loadError}
             </div>
           ) : transactions.length === 0 ? (
-            <div className="text-center py-20 text-[#8A8D92] text-sm px-6 leading-relaxed">
+            <div className="text-center py-20 text-vanta-gray text-sm px-6 leading-relaxed">
               Your ledger will show up here as you tell Vanta what's happening in your business — try the chat to add your first one.
             </div>
           ) : ledgerRows.length === 0 ? (
-            <div className="text-center py-20 text-[#8A8D92] text-sm">No transactions match your search.</div>
+            <div className="text-center py-20 text-vanta-gray text-sm">No transactions match your search.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-[#FAFAFA] text-[#9B9EA2] uppercase tracking-wider text-[10px]">
+                  <tr className="bg-vanta-sidebar text-vanta-gray uppercase tracking-wider text-[10px]">
                     <th className="text-left font-semibold px-4 py-3">Month</th>
                     <th className="text-left font-semibold px-4 py-3">Date</th>
                     <th className="text-left font-semibold px-4 py-3">Account Name</th>
@@ -214,7 +217,7 @@ export default function LedgerPage() {
                     <th className="text-right font-semibold px-4 py-3">Running Balance</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#F0F0F1]">
+                <tbody className="divide-y divide-vanta-border/60">
                   {ledgerRows.map((row) => (
                     <motion.tr
                       key={row.tx.id}
@@ -222,40 +225,42 @@ export default function LedgerPage() {
                       animate={{ opacity: 1 }}
                       onClick={() => setSelectedTx(row.tx)}
                       className={cn(
-                        'hover:bg-[#FAFAFA] transition-colors cursor-pointer',
-                        row.tx.needs_review && 'border-l-2 border-l-amber-400',
+                        'hover:bg-vanta-sidebar transition-colors cursor-pointer',
+                        row.tx.needs_review && 'border-l-2 border-l-vanta-black',
                       )}
                     >
-                      <td className="px-4 py-3 text-[#6B6E73]">{row.month}</td>
-                      <td className="px-4 py-3 text-[#6B6E73] font-mono">{row.date}</td>
-                      <td className="px-4 py-3 text-[#1B1C1E] font-medium">
+                      <td className="px-4 py-3 text-vanta-gray">{row.month}</td>
+                      <td className="px-4 py-3 text-vanta-gray font-mono">{row.date}</td>
+                      <td className="px-4 py-3 text-vanta-black font-medium">
                         {row.tx.description || row.tx.raw_input || '—'}
                       </td>
-                      <td className="px-4 py-3 text-[#6B6E73]">
+                      <td className="px-4 py-3 text-vanta-gray">
                         {row.tx.category}
-                        {row.tx.needs_review && <span className="ml-2 text-amber-600 font-bold">⚑</span>}
+                        {row.tx.needs_review && (
+                          <AlertTriangle size={12} className="inline-block ml-1.5 -mt-0.5 text-vanta-black" />
+                        )}
                       </td>
-                      <td className="px-4 py-3 text-[#9B9EA2]">{row.accountType}</td>
-                      <td className="px-4 py-3 text-right font-mono text-[#26282B]">
+                      <td className="px-4 py-3 text-vanta-gray">{row.accountType}</td>
+                      <td className="px-4 py-3 text-right font-mono text-vanta-black">
                         {row.debit > 0 ? `R${fmt(row.debit)}` : '—'}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-[#26282B]">
+                      <td className="px-4 py-3 text-right font-mono text-vanta-black">
                         {row.credit > 0 ? `R${fmt(row.credit)}` : '—'}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono font-semibold text-[#1B1C1E]">
+                      <td className="px-4 py-3 text-right font-mono font-semibold text-vanta-black">
                         R{fmt(row.runningBalance)}
                       </td>
                     </motion.tr>
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-[#FAFAFA] font-semibold">
-                    <td colSpan={5} className="px-4 py-3 text-right text-[#6B6E73] uppercase tracking-wider text-[10px]">
+                  <tr className="bg-vanta-sidebar font-semibold">
+                    <td colSpan={5} className="px-4 py-3 text-right text-vanta-gray uppercase tracking-wider text-[10px]">
                       Totals
                     </td>
-                    <td className="px-4 py-3 text-right font-mono text-[#1B1C1E]">R{fmt(totalDebit)}</td>
-                    <td className="px-4 py-3 text-right font-mono text-[#1B1C1E]">R{fmt(totalCredit)}</td>
-                    <td className="px-4 py-3 text-right font-mono text-[#1B1C1E]">R{fmt(endingBalance)}</td>
+                    <td className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(totalDebit)}</td>
+                    <td className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(totalCredit)}</td>
+                    <td className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(endingBalance)}</td>
                   </tr>
                 </tfoot>
               </table>

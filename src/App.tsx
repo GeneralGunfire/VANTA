@@ -10,9 +10,6 @@ import AuthPage from './pages/AuthPage';
 import AppLayout from './layouts/AppLayout';
 import ChatPage from './pages/ChatPage';
 import LedgerPage from './pages/LedgerPage';
-import TemplatesPage from './pages/TemplatesPage';
-import ExplorePage from './pages/ExplorePage';
-import McpRegistryPage from './pages/McpRegistryPage';
 
 export default function App() {
   return (
@@ -21,17 +18,13 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
-        <Route path="/mcp" element={<McpRegistryPage />} />
-        
+
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<Navigate to="/app/chat" replace />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="ledger" element={<LedgerPage />} />
-          <Route path="templates" element={<TemplatesPage />} />
-          <Route path="explore" element={<ExplorePage />} />
-          <Route path="history" element={<Navigate to="/app/chat" replace />} />
         </Route>
-        
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

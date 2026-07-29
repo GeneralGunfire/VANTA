@@ -1,21 +1,20 @@
 /**
- * Shared light surfaces for the signed-in app shell.
+ * Shared surfaces for the app shell and marketing pages.
  *
- * Modeled on a soft grayscale marble/silk gradient — charcoal drifting into
- * pale stone, no blue tint. The sidebar, canvas and raised cards are the same
- * ramp at different depths so they stack readably without drifting apart.
+ * Design system: white ground, near-black text, a single confident blue
+ * accent (#1E5AA8) with a light tint (#E8F0FA) and dark shade (#153F78) for
+ * emphasis states. No second accent color, no dark/charcoal theming —
+ * every page in the product reads on the same light, calm surface.
  */
 
-/** The page canvas behind chat and ledger content — smoky charcoal folding into pale stone. */
-export const APP_SURFACE =
-  'linear-gradient(165deg, #4B4E54 0%, #7C8086 22%, #A8ACB1 45%, #C7CACD 68%, #DDDFE1 100%)';
+/** The page canvas behind chat and ledger content. Plain white — the product's ground truth. */
+export const APP_SURFACE = '#FFFFFF';
 
-/** Navigation panel — a shade darker than the canvas so the two read apart. */
-export const SIDEBAR_SURFACE = 'linear-gradient(180deg, #3A3D42 0%, #55585D 55%, #6E7176 100%)';
+/** Navigation panel — a hair off-white so it reads as a distinct plane from the canvas. */
+export const SIDEBAR_SURFACE = '#F7F9FC';
 
-/** Raised cards that should lift clearly off the canvas. */
+/** Raised cards and modals. */
 export const RAISED_SURFACE = '#FFFFFF';
 
-/** Soft charcoal wash dropped behind hero content so the canvas isn't a flat block. */
-export const CANVAS_GLOW =
-  'radial-gradient(ellipse 60% 45% at 30% 0%, rgba(30,32,36,0.14), transparent 70%)';
+/** The hero panel on Auth and the accent block on Landing — the one place the blue accent fills a large area. */
+export const ACCENT_SURFACE = 'linear-gradient(155deg, #2E6EBF 0%, #1E5AA8 45%, #153F78 100%)';

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { X, Plus, Check } from 'lucide-react';
+import { Plus, Check, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import Modal from './Modal';
 import { Transaction } from './TransactionDetailModal';
 
 interface AddTransactionModalProps {
@@ -22,8 +22,6 @@ export default function AddTransactionModal({ isOpen, onClose, onAdd }: AddTrans
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,69 +56,50 @@ export default function AddTransactionModal({ isOpen, onClose, onAdd }: AddTrans
   };
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
-          className="bg-white border border-vanta-border shadow-2xl rounded-sm w-full max-w-md overflow-hidden flex flex-col"
-        >
-          <div className="flex items-center justify-between px-6 py-5 border-b border-vanta-border bg-vanta-sidebar">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-sm bg-vanta-navy text-white flex items-center justify-center">
-                <Plus size={16} />
-              </div>
-              <h3 className="font-serif font-bold text-lg text-vanta-navy">Add a transaction</h3>
-            </div>
-            <button onClick={onClose} className="text-vanta-gray hover:text-vanta-navy p-1 transition-colors">
-              <X size={20} />
-            </button>
+    <Modal isOpen={isOpen} onClose={onClose} eyebrow="New entry" title="Add a transaction" icon={<Plus size={16} />} maxWidth="max-w-md">
+      <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <div>
+          <label className="block text-[10px] uppercase tracking-widest font-semibold text-vanta-black mb-2">
+            What happened?
+          </label>
+          <textarea
+            required
+            rows={3}
+            placeholder='e.g. "sold 20 loaves R400 cash" or "bought flour for R180"'
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full bg-white border border-vanta-border p-3 text-sm text-vanta-black focus:outline-none focus:border-vanta-navy rounded-lg resize-none"
+          />
+          <p className="text-xs text-vanta-gray mt-2">
+            Describe it in your own words — Vanta will work out the amount, category, and direction.
+          </p>
+        </div>
+
+        {error && (
+          <div className="flex items-start gap-2 p-3 border-2 border-vanta-black rounded-lg text-xs text-vanta-black">
+            <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+            {error}
           </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            <div>
-              <label className="block text-[10px] uppercase tracking-widest font-semibold text-vanta-navy mb-2">
-                What happened?
-              </label>
-              <textarea
-                required
-                rows={3}
-                placeholder='e.g. "sold 20 loaves R400 cash" or "bought flour for R180"'
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full bg-vanta-bg border border-vanta-border p-3 text-sm text-vanta-navy focus:outline-none focus:border-vanta-navy rounded-sm resize-none"
-              />
-              <p className="text-xs text-vanta-gray mt-2">
-                Describe it in your own words — Vanta will work out the amount, category, and direction.
-              </p>
-            </div>
-
-            {error && (
-              <div className="p-3 border-2 border-vanta-navy rounded-sm text-xs text-vanta-navy">{error}</div>
-            )}
-
-            <div className="pt-2 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-xs font-semibold uppercase tracking-widest text-vanta-gray hover:text-vanta-navy transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting || !description.trim()}
-                className="bg-vanta-navy text-white px-5 py-2 text-xs font-semibold uppercase tracking-widest hover:bg-opacity-90 transition-opacity rounded-sm flex items-center gap-2 disabled:opacity-50"
-              >
-                <Check size={14} />
-                {isSubmitting ? 'Recording…' : 'Add'}
-              </button>
-            </div>
-          </form>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+        <div className="pt-2 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-semibold uppercase tracking-widest text-vanta-gray hover:text-vanta-black transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting || !description.trim()}
+            className="bg-vanta-navy text-white px-5 py-2 text-xs font-semibold uppercase tracking-widest hover:bg-vanta-navy-dark transition-colors rounded-lg flex items-center gap-2 disabled:opacity-50"
+          >
+            <Check size={14} />
+            {isSubmitting ? 'Recording…' : 'Add'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
