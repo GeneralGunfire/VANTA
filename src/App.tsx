@@ -25,6 +25,9 @@ export default function App() {
           <Route index element={<Navigate to="/app/chat" replace />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="ledger" element={<LedgerPage />} />
+          <Route path="templates" element={<Navigate to="/app/chat" replace />} />
+          <Route path="explore" element={<Navigate to="/app/chat" replace />} />
+          <Route path="history" element={<Navigate to="/app/chat" replace />} />
         </Route>
         
         <Route path="*" element={<Navigate to="/" replace />} />

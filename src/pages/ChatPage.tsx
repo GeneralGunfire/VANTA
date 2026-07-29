@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowRight, Upload, AlertTriangle, ArrowUpRight, ArrowDownLeft, RefreshCw, Sparkles, Banknote, Receipt, MessageCircleQuestion } from 'lucide-react';
+import { Upload, AlertTriangle, ArrowUpRight, ArrowDownLeft, RefreshCw, ImagePlus, Globe, Mic } from 'lucide-react';
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
-import { APP_SURFACE, RAISED_SURFACE } from '../lib/surfaces';
+import { TextGenerateEffect } from '../components/ui/text-generate-effect';
+import { MagicCard } from '../components/ui/magic-card';
 
 interface ParsedTransaction {
   id?: string;
@@ -31,17 +32,6 @@ const WELCOME: Message = {
   content: "Tell me about a sale or expense in your own words — for example \"sold 20 loaves R400 cash\" — and I'll add it to your books.",
   timestamp: '',
 };
-
-/**
- * Light-beam treatment for the composer. Every stop is a tint or shade of the
- * single blue accent (#1E5AA8) — no second hue is introduced.
- */
-const BEAM_GRADIENT =
-  'linear-gradient(90deg, transparent 0%, #6FA3DE 22%, #1E5AA8 50%, #6FA3DE 78%, transparent 100%)';
-const BORDER_GRADIENT =
-  'linear-gradient(90deg, #E8F0FA 0%, #6FA3DE 25%, #1E5AA8 50%, #6FA3DE 75%, #E8F0FA 100%)';
-
-
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([WELCOME]);
@@ -167,33 +157,21 @@ export default function ChatPage() {
 
   const isEmpty = messages.length === 1 && messages[0].id === 'welcome';
 
-  const quickPrompts = [
-    { icon: Banknote, label: 'Log a sale', prompt: 'sold 20 loaves R400 cash' },
-    { icon: Receipt, label: 'Log an expense', prompt: 'bought flour for R180' },
-    { icon: MessageCircleQuestion, label: "Ask how you're doing", prompt: "how's business this week?" },
-  ];
-
   const suggestionCards = [
     {
-      icon: Banknote,
-      tag: 'Try it',
-      title: 'Log a sale',
-      body: 'Tell Vanta what you sold and for how much — it\'ll file it under Sales automatically.',
+      title: 'Smart Budget',
+      body: 'A budget that fits your lifestyle, not the other way around',
       prompt: 'sold 20 loaves R400 cash',
     },
     {
-      icon: Receipt,
-      tag: 'Try it',
-      title: 'Log an expense',
-      body: 'Describe what you bought for the business and Vanta will categorize it for you.',
-      prompt: 'bought flour for R180',
+      title: 'Analytics',
+      body: 'Analytics empowers individuals and businesses to make smarter',
+      prompt: "how's business this week?",
     },
     {
-      icon: Upload,
-      tag: 'Beta',
-      title: 'Upload your records',
-      body: 'Attach an Excel or CSV file instead of typing each transaction out.',
-      prompt: null,
+      title: 'Spending',
+      body: 'Spending is the way individuals and businesses use their financial',
+      prompt: 'bought flour for R180',
     },
   ];
 
@@ -211,124 +189,161 @@ export default function ChatPage() {
         }}
       />
 
-      {/* Light beam — wide halo, tight streak and filament, all in the single blue accent */}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-1/2 h-20 w-[140%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] blur-3xl opacity-25 transition-opacity duration-500 group-focus-within:opacity-60"
-        style={{ background: BEAM_GRADIENT }}
-      />
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-1/2 h-7 w-[118%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] blur-xl opacity-30 transition-opacity duration-500 group-focus-within:opacity-70"
-        style={{ background: BEAM_GRADIENT }}
-      />
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-1/2 h-px w-[108%] -translate-x-1/2 -translate-y-1/2 opacity-0 blur-[1px] transition-opacity duration-500 group-focus-within:opacity-80"
-        style={{
-          background: 'linear-gradient(90deg, transparent 0%, #6FA3DE 40%, #6FA3DE 60%, transparent 100%)',
-        }}
-      />
-
-      {/* Gradient-bordered pill */}
-      <div
-        className="relative rounded-full p-px transition-shadow duration-500 group-focus-within:shadow-[0_0_30px_-8px_rgba(30,90,168,0.55)]"
-        style={{ background: BORDER_GRADIENT }}
-      >
-        <div className="relative flex items-center rounded-full bg-[#0E131A]">
+      <div className="relative rounded-2xl">
+        {/* Animated glow ring, brightens on focus */}
+        <div
+          aria-hidden="true"
+          className="absolute -inset-px rounded-2xl opacity-40 blur-[2px] transition-opacity duration-300 group-focus-within:opacity-90"
+          style={{
+            background: 'linear-gradient(120deg, rgba(110,168,255,0.5), rgba(255,255,255,0.08) 30%, rgba(110,168,255,0.5) 60%, rgba(255,255,255,0.08))',
+          }}
+        />
+        <div className="relative rounded-2xl bg-[#0B0F1A]/90 border border-white/10 group-focus-within:border-white/20 transition-colors backdrop-blur-sm">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Message AI Chat…"
+          className="w-full bg-transparent pt-4 pb-12 px-4 text-zinc-100 placeholder-white/35 focus:outline-none text-sm"
+        />
+        <div className="absolute left-3 bottom-2.5 flex items-center gap-1">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            title="Attach Excel or CSV file"
-            className="absolute left-3 p-2 text-white/45 hover:text-[#8FBCEA] transition-colors rounded-full hover:bg-white/10"
+            title="Attach a file"
+            className="p-2 text-white/45 hover:text-white/80 transition-colors rounded-lg hover:bg-white/10"
           >
-            <Upload size={18} />
+            <Upload size={16} />
           </button>
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Tell Vanta about a sale or expense…"
-            className="w-full bg-transparent py-4 pl-12 pr-24 sm:pr-32 text-zinc-100 placeholder-white/35 focus:outline-none rounded-full text-sm"
-          />
           <button
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            className="group/send absolute right-2 top-2 bottom-2 bg-vanta-navy text-white px-4 sm:px-6 text-xs font-semibold hover:bg-[#2A6DC4] transition-all disabled:opacity-40 flex items-center gap-1.5 sm:gap-2 rounded-full active:scale-[0.97]"
+            type="button"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-white/60 hover:text-white/90 hover:bg-white/10 rounded-lg transition-colors"
           >
-            <span className="hidden sm:inline">Send</span>
-            <ArrowRight size={14} className="transition-transform group-hover/send:translate-x-0.5" />
+            <ImagePlus size={15} />
+            Create an image
           </button>
+          <button
+            type="button"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-white/60 hover:text-white/90 hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <Globe size={15} />
+            Search the web
+          </button>
+        </div>
+        <button
+          type="submit"
+          disabled={!input.trim() || isLoading}
+          className="absolute right-2.5 bottom-2.5 w-8 h-8 rounded-full bg-white text-black flex items-center justify-center hover:bg-white/85 transition-all disabled:opacity-30 active:scale-[0.95]"
+        >
+          <Mic size={14} />
+        </button>
         </div>
       </div>
     </form>
   );
 
   if (isEmpty) {
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+
     return (
-      <div
-        className="flex-1 flex flex-col h-full relative overflow-y-auto overflow-x-hidden"
-        style={{ background: APP_SURFACE }}
-      >
-        <div
+      <div className="flex-1 flex flex-col h-full relative overflow-y-auto overflow-x-hidden">
+        {/* Faint blue haze drifting across the whole canvas */}
+        <motion.div
           aria-hidden="true"
+          animate={{ opacity: [0.25, 0.45, 0.25] }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
           className="pointer-events-none absolute inset-0"
           style={{
-            background:
-              'radial-gradient(ellipse 60% 45% at 50% 8%, rgba(30,90,168,0.16), transparent 70%)',
+            background: 'radial-gradient(ellipse 45% 35% at 50% 32%, rgba(45,120,255,0.16), transparent 70%)',
           }}
         />
         <div className="relative flex-1 flex flex-col items-center justify-center px-6 py-16 min-h-full">
+          {/* Blue energy orb — woven glowing wireframe rings, like the reference */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="relative w-20 h-20 mb-8"
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1, y: [0, -8, 0] }}
+            transition={{
+              opacity: { duration: 0.7 },
+              scale: { duration: 0.7 },
+              y: { duration: 6, repeat: Infinity, ease: 'easeInOut' },
+            }}
+            className="relative w-52 h-52 mb-4"
           >
-            <div className="absolute inset-0 rounded-full bg-vanta-navy/25 blur-2xl" />
-            <div
-              className="relative w-20 h-20 rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(30,90,168,0.35)]"
-              style={{ background: 'radial-gradient(circle at 32% 28%, #6FA3DE, #1E5AA8 55%, #153F78 100%)' }}
-            >
-              <Sparkles size={28} className="text-white/90" />
-            </div>
-          </motion.div>
+            {/* Core glow */}
+            <motion.div
+              animate={{ opacity: [0.35, 0.7, 0.35], scale: [0.9, 1.08, 0.9] }}
+              transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute inset-6 rounded-full blur-2xl"
+              style={{ background: 'radial-gradient(circle, rgba(64,140,255,0.9) 0%, rgba(20,80,200,0.4) 55%, transparent 75%)' }}
+            />
 
-          <motion.h1
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="text-2xl md:text-3xl font-serif font-bold text-zinc-50 text-center mb-2"
-          >
-            What happened in your business today?
-          </motion.h1>
-          <p className="text-white/55 text-sm text-center max-w-md mb-8">
-            Tell Vanta about a sale or expense in plain language — no forms, no spreadsheets.
-          </p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.15 }}
-            className="flex flex-wrap items-center justify-center gap-2 mb-6"
-          >
-            {quickPrompts.map((q) => (
-              <button
-                key={q.label}
-                onClick={() => handleQuickPrompt(q.prompt)}
-                className="inline-flex items-center gap-1.5 bg-white/6 border border-white/12 hover:border-white/25 hover:bg-white/10 px-4 py-2 rounded-full text-xs font-semibold text-zinc-100 transition-colors backdrop-blur-sm"
+            {/* Three counter-rotating ring layers */}
+            {[
+              { dur: 16, dir: 360, tilt: 0, delayRings: [0, 30, 60] },
+              { dur: 22, dir: -360, tilt: 45, delayRings: [15, 50, 80] },
+              { dur: 28, dir: 360, tilt: 90, delayRings: [10, 40, 70] },
+            ].map((layer, li) => (
+              <motion.svg
+                key={li}
+                viewBox="0 0 200 200"
+                className="absolute inset-0 w-full h-full"
+                animate={{ rotate: layer.dir }}
+                transition={{ duration: layer.dur, repeat: Infinity, ease: 'linear' }}
+                style={{ filter: 'drop-shadow(0 0 6px rgba(64,140,255,0.9)) drop-shadow(0 0 18px rgba(30,100,240,0.5))' }}
               >
-                <q.icon size={14} className="text-[#8FBCEA]" />
-                {q.label}
-              </button>
+                <defs>
+                  <linearGradient id={`ringGrad${li}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#EAF4FF" stopOpacity="0.95" />
+                    <stop offset="35%" stopColor="#5CA8FF" stopOpacity="0.9" />
+                    <stop offset="70%" stopColor="#1E5AC8" stopOpacity="0.5" />
+                    <stop offset="100%" stopColor="#0A2C6E" stopOpacity="0.1" />
+                  </linearGradient>
+                </defs>
+                {layer.delayRings.map((rot, ri) => (
+                  <ellipse
+                    key={ri}
+                    cx="100"
+                    cy="100"
+                    rx="78"
+                    ry={34 + ri * 10}
+                    fill="none"
+                    stroke={`url(#ringGrad${li})`}
+                    strokeWidth={ri === 0 ? 1.6 : 0.9}
+                    transform={`rotate(${layer.tilt + rot} 100 100)`}
+                    opacity={0.9 - ri * 0.25}
+                  />
+                ))}
+              </motion.svg>
             ))}
+
+            {/* Fine particle shimmer */}
+            <motion.div
+              animate={{ opacity: [0.2, 0.5, 0.2] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute inset-10 rounded-full"
+              style={{
+                backgroundImage:
+                  'radial-gradient(rgba(140,190,255,0.8) 0.5px, transparent 0.5px), radial-gradient(rgba(90,150,255,0.6) 0.5px, transparent 0.5px)',
+                backgroundSize: '14px 14px, 9px 9px',
+                backgroundPosition: '0 0, 5px 7px',
+                maskImage: 'radial-gradient(circle, black 30%, transparent 70%)',
+                WebkitMaskImage: 'radial-gradient(circle, black 30%, transparent 70%)',
+              }}
+            />
           </motion.div>
+
+          <h1 className="text-2xl md:text-3xl font-semibold text-zinc-50 text-center mb-10">
+            <TextGenerateEffect words={`${greeting}, User.`} />
+            <br />
+            <TextGenerateEffect words="Can I help you with anything?" className="text-white/70" />
+          </h1>
 
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            className="w-full max-w-2xl bg-white/5 border border-white/10 backdrop-blur-xl shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)] rounded-3xl p-3"
+            className="w-full max-w-2xl"
           >
             {inputBar}
           </motion.div>
@@ -337,32 +352,16 @@ export default function ChatPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.25 }}
-            className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl w-full mt-8"
+            className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl w-full mt-6"
           >
             {suggestionCards.map((card) => (
-              <button
+              <MagicCard
                 key={card.title}
                 onClick={() => (card.prompt ? handleQuickPrompt(card.prompt) : fileInputRef.current?.click())}
-                style={{ background: RAISED_SURFACE }}
-                className="group relative overflow-hidden rounded-2xl border border-white/10 p-4 text-left transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_22px_44px_-18px_rgba(0,0,0,0.65),0_0_34px_-12px_rgba(30,90,168,0.7)]"
               >
-                {/* Blue bloom bleeding in from the corner */}
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-vanta-navy opacity-30 blur-2xl transition-opacity duration-300 group-hover:opacity-55"
-                />
-
-                <div className="relative flex items-center justify-between mb-3">
-                  <div className="w-9 h-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-[#8FBCEA] group-hover:bg-vanta-navy group-hover:border-transparent group-hover:text-white transition-colors">
-                    <card.icon size={16} />
-                  </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/50 bg-white/10 px-2 py-0.5 rounded-full">
-                    {card.tag}
-                  </span>
-                </div>
-                <div className="relative text-sm font-bold text-white mb-1">{card.title}</div>
-                <div className="relative text-xs text-white/55 leading-relaxed">{card.body}</div>
-              </button>
+                <div className="text-sm font-semibold text-white mb-1">{card.title}</div>
+                <div className="text-xs text-white/50 leading-relaxed">{card.body}</div>
+              </MagicCard>
             ))}
           </motion.div>
         </div>
@@ -371,23 +370,8 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full relative overflow-hidden" style={{ background: APP_SURFACE }}>
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: 'radial-gradient(ellipse 55% 40% at 50% 0%, rgba(30,90,168,0.14), transparent 70%)',
-        }}
-      />
-
-      <div className="relative px-6 md:px-12 py-6 border-b border-white/10 bg-white/5 backdrop-blur-md">
-        <h1 className="text-2xl lg:text-3xl font-serif text-zinc-50 font-bold">Chat</h1>
-        <p className="text-xs uppercase tracking-widest text-white/45 mt-1 font-semibold">
-          Tell Vanta what happened, in your own words
-        </p>
-      </div>
-
-      <div className="relative flex-1 overflow-y-auto px-6 md:px-12 pt-4 pb-52">
+    <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+      <div className="relative flex-1 overflow-y-auto px-6 md:px-12 pt-8 pb-52">
         <div className="max-w-4xl mx-auto space-y-6">
           {messages.map((msg) => (
             <motion.div
@@ -444,22 +428,7 @@ export default function ChatPage() {
       </div>
 
       <div className="absolute bottom-6 left-6 right-6 z-30">
-        <div className="max-w-4xl mx-auto bg-white/5 border border-white/10 backdrop-blur-xl shadow-[0_24px_60px_-20px_rgba(0,0,0,0.8)] rounded-3xl p-3 space-y-2.5">
-          <div className="flex items-center gap-2 overflow-x-auto px-1 pt-1">
-            {quickPrompts.map((q) => (
-              <button
-                key={q.label}
-                onClick={() => handleQuickPrompt(q.prompt)}
-                className="inline-flex items-center gap-1.5 bg-white/6 border border-white/10 hover:bg-white/12 hover:border-white/20 px-3 py-1.5 rounded-full text-xs font-semibold text-zinc-100 transition-colors shrink-0"
-              >
-                <q.icon size={13} className="text-[#8FBCEA]" />
-                {q.label}
-              </button>
-            ))}
-          </div>
-
-          {inputBar}
-        </div>
+        <div className="max-w-4xl mx-auto">{inputBar}</div>
       </div>
     </div>
   );
