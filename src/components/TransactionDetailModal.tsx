@@ -1,6 +1,10 @@
-import React from 'react';
-import { CheckCircle2, AlertTriangle, Calendar, Tag, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { CheckCircle2, AlertTriangle, Calendar, Tag, ArrowUpRight, ArrowDownLeft, Pencil, Check, X } from 'lucide-react';
+import { toast } from 'sonner';
 import Modal from './Modal';
+import { supabase } from '../lib/supabase';
+import { getAnonId } from '../lib/anonId';
+import { cn } from '../lib/utils';
 
 export interface Transaction {
   id: string;
@@ -18,10 +22,50 @@ export interface Transaction {
 interface TransactionDetailModalProps {
   transaction: Transaction | null;
   onClose: () => void;
+  /** Called with the saved transaction after a correction persists, so the caller can update its local list. */
+  onCorrected?: (updated: Transaction) => void;
 }
 
-export default function TransactionDetailModal({ transaction, onClose }: TransactionDetailModalProps) {
+const CATEGORIES = ['Sales', 'Stock', 'Rent', 'Utilities', 'Transport', 'Wages', 'Other'];
+
+/**
+ * Persists a correction via the record-correction edge function (writes a
+ * correction_history row) and separately updates the transaction row
+ * itself so the ledger reflects the fix immediately. record-correction
+ * was built in an earlier pass but never called from the frontend — this
+ * is the first real caller.
+ */
+async function persistCorrection(field: 'category' | 'amount' | 'description', transactionId: string, before: string, after: string) {
+  if (!supabase) throw new Error('Supabase is not configured.');
+
+  const { error: fnError } = await supabase.functions.invoke('record-correction', {
+    body: { transaction_id: transactionId, field, before_value: before, after_value: after },
+    headers: { 'x-vanta-anon-id': getAnonId() },
+  });
+  if (fnError) throw fnError;
+
+  const updatePayload: Record<string, string | number> =
+    field === 'amount' ? { amount: Number(after) } : { [field]: after };
+
+  const { data, error } = await supabase.from('transactions').update(updatePayload).eq('id', transactionId).select().single();
+  if (error) throw error;
+  return data as Transaction;
+}
+
+export default function TransactionDetailModal({ transaction, onClose, onCorrected }: TransactionDetailModalProps) {
   const isOpen = transaction !== null;
+
+  const [editingField, setEditingField] = useState<'category' | 'amount' | 'description' | null>(null);
+  const [draftValue, setDraftValue] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setEditingField(null);
+      setDraftValue('');
+    }
+  }, [isOpen]);
+
   if (!transaction) return null;
 
   const formattedDate = new Date(transaction.date || transaction.created_at).toLocaleDateString('en-ZA', {
@@ -33,6 +77,35 @@ export default function TransactionDetailModal({ transaction, onClose }: Transac
   });
 
   const isIn = transaction.direction === 'in';
+
+  const startEdit = (field: 'category' | 'amount' | 'description', current: string) => {
+    setEditingField(field);
+    setDraftValue(current);
+  };
+
+  const cancelEdit = () => {
+    setEditingField(null);
+    setDraftValue('');
+  };
+
+  const saveEdit = async (field: 'category' | 'amount' | 'description', before: string) => {
+    if (draftValue === before) {
+      cancelEdit();
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const updated = await persistCorrection(field, transaction.id, before, draftValue);
+      onCorrected?.(updated);
+      toast.success('Correction saved');
+      cancelEdit();
+    } catch (err: any) {
+      console.error('Failed to save correction:', err);
+      toast.error(err?.message ?? 'Could not save — try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <Modal
@@ -51,11 +124,36 @@ export default function TransactionDetailModal({ transaction, onClose }: Transac
     >
       <div className="p-6 space-y-6">
         <div className="p-6 bg-vanta-sidebar border border-vanta-border rounded-xl flex items-center justify-between">
-          <div>
-            <div className="text-[10px] uppercase tracking-widest text-vanta-gray mb-1">Amount</div>
-            <div className="text-2xl font-mono font-bold text-vanta-black">
-              {isIn ? '+' : '-'}R{(transaction.amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          <div className="flex-1">
+            <div className="text-[10px] uppercase tracking-widest text-vanta-gray mb-1 flex items-center gap-1.5">
+              Amount
+              {editingField !== 'amount' && (
+                <button onClick={() => startEdit('amount', String(transaction.amount ?? 0))} aria-label="Edit amount" className="text-vanta-gray hover:text-vanta-black">
+                  <Pencil size={11} />
+                </button>
+              )}
             </div>
+            {editingField === 'amount' ? (
+              <div className="flex items-center gap-2">
+                <input
+                  autoFocus
+                  inputMode="decimal"
+                  value={draftValue}
+                  onChange={(e) => setDraftValue(e.target.value)}
+                  className="text-xl font-mono font-bold text-vanta-black bg-white border border-vanta-border rounded-lg px-2 py-1 w-32"
+                />
+                <button onClick={() => saveEdit('amount', String(transaction.amount ?? 0))} disabled={isSaving} className="p-1.5 text-vanta-navy hover:text-vanta-navy-dark">
+                  <Check size={16} />
+                </button>
+                <button onClick={cancelEdit} className="p-1.5 text-vanta-gray hover:text-vanta-black">
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <div className="text-2xl font-mono font-bold text-vanta-black">
+                {isIn ? '+' : '-'}R{(transaction.amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </div>
+            )}
           </div>
           <div className="p-3 rounded-lg bg-white border border-vanta-border text-vanta-navy">
             {isIn ? <ArrowDownLeft size={24} /> : <ArrowUpRight size={24} />}
@@ -70,11 +168,39 @@ export default function TransactionDetailModal({ transaction, onClose }: Transac
         )}
 
         <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="p-3 border border-vanta-border rounded-xl">
-            <div className="text-[10px] uppercase tracking-widest text-vanta-gray mb-1 flex items-center gap-1">
+          <div className="p-3 border border-vanta-border rounded-xl col-span-2">
+            <div className="text-[10px] uppercase tracking-widest text-vanta-gray mb-2 flex items-center gap-1.5">
               <Tag size={12} /> Category
+              {editingField !== 'category' && (
+                <button onClick={() => startEdit('category', transaction.category || 'Other')} aria-label="Edit category" className="text-vanta-gray hover:text-vanta-black">
+                  <Pencil size={11} />
+                </button>
+              )}
             </div>
-            <div className="font-medium text-vanta-black">{transaction.category || 'Other'}</div>
+            {editingField === 'category' ? (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {CATEGORIES.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setDraftValue(c)}
+                    className={cn(
+                      'px-3 py-1.5 text-xs font-medium rounded-full border transition-all',
+                      draftValue === c ? 'bg-vanta-navy text-white border-vanta-navy' : 'bg-white text-vanta-gray border-vanta-border hover:text-vanta-black',
+                    )}
+                  >
+                    {c}
+                  </button>
+                ))}
+                <button onClick={() => saveEdit('category', transaction.category || 'Other')} disabled={isSaving} className="p-1.5 text-vanta-navy hover:text-vanta-navy-dark ml-1">
+                  <Check size={16} />
+                </button>
+                <button onClick={cancelEdit} className="p-1.5 text-vanta-gray hover:text-vanta-black">
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <div className="font-medium text-vanta-black">{transaction.category || 'Other'}</div>
+            )}
           </div>
 
           <div className="p-3 border border-vanta-border rounded-xl">
@@ -90,9 +216,7 @@ export default function TransactionDetailModal({ transaction, onClose }: Transac
           </div>
 
           <div
-            className={`p-3 rounded-xl ${
-              transaction.needs_review ? 'border-2 border-vanta-black' : 'border border-vanta-border'
-            }`}
+            className={cn('p-3 rounded-xl col-span-2', transaction.needs_review ? 'border-2 border-vanta-black' : 'border border-vanta-border')}
           >
             <div className="text-[10px] uppercase tracking-widest text-vanta-gray mb-1">Status</div>
             {transaction.needs_review ? (

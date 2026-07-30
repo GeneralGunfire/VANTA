@@ -42,7 +42,7 @@ interface LedgerRow {
 const columnHelper = createColumnHelper<LedgerRow>();
 
 export default function LedgerPage() {
-  const { transactions, isLoading, loadError, addTransaction } = useTransactions();
+  const { transactions, isLoading, loadError, addTransaction, updateTransaction } = useTransactions();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'in' | 'out' | 'needs_review'>('all');
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
@@ -182,7 +182,7 @@ export default function LedgerPage() {
 
   return (
     <div className="relative flex-1 overflow-y-auto pt-12 px-6 md:px-12 lg:px-16 pb-32">
-      <TransactionDetailModal transaction={selectedTx} onClose={() => setSelectedTx(null)} />
+      <TransactionDetailModal transaction={selectedTx} onClose={() => setSelectedTx(null)} onCorrected={updateTransaction} />
       <AddTransactionModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={addTransaction} />
 
       <div className="relative max-w-6xl mx-auto space-y-6">
