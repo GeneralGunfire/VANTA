@@ -1,22 +1,72 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Fraunces", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-serif: "Fraunces", serif;
 
-  /* Corrected to the actual design system: pure white ground, near-black
-     text, single confident blue accent (no second accent color). The
-     AI Studio export used a dark navy (#0A182E) accent on an off-white
-     (#F8F9FA) background plus emerald/amber status colors — all replaced
-     here. See integration report for full detail. */
-  --color-vanta-navy: #1E5AA8;
-  --color-vanta-navy-dark: #153F78;
-  --color-vanta-black: #1C1C1C;
-  --color-vanta-bg: #FFFFFF;
-  --color-vanta-sidebar: #F7F9FC;
-  --color-vanta-gray: #55575C;
-  --color-vanta-border: #E6E6E8;
+  /*
+   * Design language: Linear / Stripe / Raycast-inspired fintech precision.
+   * Warm neutral surfaces, a single restrained blue accent, status colors
+   * reserved for state (never decoration). Depth comes from spacing,
+   * typography, and layered shadows — not gradients or glass.
+   */
+  --color-vanta-bg: #F7F8FA;
+  --color-vanta-panel: #FFFFFF;
+  --color-vanta-black: #111827;
+  --color-vanta-gray: #6B7280;
+  --color-vanta-gray-light: #9CA3AF;
+  --color-vanta-border: rgba(17, 24, 39, 0.08);
+  --color-vanta-border-strong: rgba(17, 24, 39, 0.12);
+
+  --color-vanta-navy: #2563EB;
+  --color-vanta-navy-dark: #1D4ED8;
+  --color-vanta-accent-tint: #EFF4FE;
+
+  --color-vanta-success: #16A34A;
+  --color-vanta-success-tint: #F0FDF4;
+  --color-vanta-warning: #D97706;
+  --color-vanta-warning-tint: #FFFBEB;
+  --color-vanta-danger: #DC2626;
+  --color-vanta-danger-tint: #FEF2F2;
+
+  --color-vanta-sidebar: #FBFBFC;
+
+  /* shadcn/ui bridge — every value aliases a token above. */
+  --color-background: var(--color-vanta-bg);
+  --color-foreground: var(--color-vanta-black);
+  --color-card: var(--color-vanta-panel);
+  --color-card-foreground: var(--color-vanta-black);
+  --color-popover: var(--color-vanta-panel);
+  --color-popover-foreground: var(--color-vanta-black);
+  --color-primary: var(--color-vanta-navy);
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: var(--color-vanta-sidebar);
+  --color-secondary-foreground: var(--color-vanta-black);
+  --color-muted: #F3F4F6;
+  --color-muted-foreground: var(--color-vanta-gray);
+  --color-accent: var(--color-vanta-accent-tint);
+  --color-accent-foreground: var(--color-vanta-navy-dark);
+  --color-destructive: var(--color-vanta-danger);
+  --color-destructive-foreground: #FFFFFF;
+  --color-border: var(--color-vanta-border);
+  --color-input: var(--color-vanta-border);
+  --color-ring: var(--color-vanta-navy);
+  --radius: 0.75rem;
+  --radius-sm: calc(var(--radius) * 0.55);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.35);
+  --radius-2xl: calc(var(--radius) * 1.75);
+
+  --color-chart-1: var(--color-vanta-navy);
+  --color-chart-2: var(--color-vanta-gray-light);
+
+  /* Layered shadow scale — three soft, cumulative layers, never one heavy shadow. */
+  --shadow-vanta-sm: 0 1px 2px rgba(17, 24, 39, 0.03);
+  --shadow-vanta-md: 0 1px 2px rgba(17, 24, 39, 0.03), 0 10px 30px rgba(17, 24, 39, 0.05);
+  --shadow-vanta-lg: 0 1px 2px rgba(17, 24, 39, 0.03), 0 10px 30px rgba(17, 24, 39, 0.05), 0 30px 60px rgba(17, 24, 39, 0.04);
 }
 
 @layer base {
@@ -29,7 +79,11 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-serif text-vanta-black;
-    letter-spacing: -0.01em;
+    @apply font-sans text-vanta-black;
+    letter-spacing: -0.015em;
+  }
+
+  * {
+    @apply border-border outline-ring/50;
   }
 }

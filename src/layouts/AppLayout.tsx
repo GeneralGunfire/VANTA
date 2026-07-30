@@ -28,13 +28,13 @@ const NAV_GROUPS: NavGroup[] = [
       { name: 'Home', path: '/app/chat', icon: Home },
       { name: 'Ledger', path: '/app/ledger', icon: BookOpen },
       { name: 'Debtors & Creditors', path: '/app/debtors', icon: Users },
+      { name: 'Tax Calendar', path: '/app/tax-calendar', icon: CalendarClock },
     ],
   },
   {
     label: 'Coming soon',
     disabled: true,
     items: [
-      { name: 'Tax Calendar', path: '', icon: CalendarClock },
       { name: 'Inventory', path: '', icon: Package },
       { name: 'Document Vault', path: '', icon: FolderLock },
     ],

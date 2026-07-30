@@ -11,6 +11,7 @@ import AppLayout from './layouts/AppLayout';
 import ChatPage from './pages/ChatPage';
 import LedgerPage from './pages/LedgerPage';
 import DebtorsPage from './pages/DebtorsPage';
+import TaxCalendarPage from './pages/TaxCalendarPage';
 import { Toaster } from './components/ui/sonner';
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="chat" element={<ChatPage />} />
           <Route path="ledger" element={<LedgerPage />} />
           <Route path="debtors" element={<DebtorsPage />} />
+          <Route path="tax-calendar" element={<TaxCalendarPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
