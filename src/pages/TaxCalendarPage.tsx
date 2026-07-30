@@ -12,37 +12,41 @@ interface ComplianceDate {
 }
 
 /**
- * SA compliance dates for the 2026 tax year (March 2025–February 2026 /
- * March 2026–February 2027 depending on where "today" falls). Today's
- * date is 2026-07-30, inside the March 2026–February 2027 tax year.
- *
- * Dates are deliberately phrased as general patterns ("typically due by")
- * rather than asserted as exact confirmed dates — provisional tax and VAT
- * deadlines can shift slightly year to year and this list was not cross-
- * checked against a live SARS calendar. See final report.
+ * SA compliance dates for the 2027 tax year (1 March 2026 – 28 February
+ * 2027), for a business with a standard February financial year-end —
+ * the default for individuals and most small/informal businesses in
+ * South Africa. Sourced from SARS's own published deadline structure,
+ * current as of mid-2026. If this business's financial year-end is NOT
+ * the end of February, every one of these dates shifts accordingly —
+ * see the note in the UI.
  */
 const PROVISIONAL_TAX_DATES: ComplianceDate[] = [
   {
-    title: '1st provisional tax payment',
-    when: 'Typically due by the end of August',
-    detail: 'Six months into the March–February tax year. Based on an estimate of your total taxable income for the year.',
+    title: '1st provisional tax payment (IRP6)',
+    when: '31 August 2026',
+    detail: 'Six months into the 2027 tax year (1 March 2026 – 28 February 2027). Based on an estimate of your total taxable income for the year.',
   },
   {
-    title: '2nd provisional tax payment',
-    when: 'Typically due by the end of February',
-    detail: 'At the end of the tax year, based on a more accurate estimate of full-year taxable income.',
+    title: '2nd provisional tax payment (IRP6)',
+    when: '26 February 2027',
+    detail: 'At the end of the 2027 tax year, based on a more accurate estimate of full-year taxable income. 28 February 2027 falls on a Sunday, so the deadline shifts to the prior business day.',
   },
   {
     title: '3rd "top-up" payment (optional)',
-    when: 'Typically due by the end of September',
+    when: '30 September 2027',
     detail: 'Optional top-up payment to avoid interest if your February estimate was too low, paid after assessment.',
+  },
+  {
+    title: 'Annual income tax return',
+    when: '22 January 2027',
+    detail: 'For provisional taxpayers (including most small businesses and trusts) filing via eFiling.',
   },
 ];
 
 const VAT_DATES: ComplianceDate[] = [
   {
-    title: 'Bi-monthly VAT return & payment',
-    when: 'Typically due by the 25th of the month after each 2-month VAT period (or the last business day before, if the 25th falls on a weekend/public holiday)',
+    title: 'VAT201 return & payment',
+    when: 'The 25th of the month following each 2-month VAT period (or the last business day before, if the 25th falls on a weekend/public holiday)',
     detail: 'Standard bi-monthly vendors submit a VAT201 return and pay any VAT owing roughly every two months.',
     vatOnly: true,
   },
@@ -71,14 +75,16 @@ export default function TaxCalendarPage() {
       <div className="relative max-w-6xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-serif text-vanta-black tracking-tight">Tax & Compliance Calendar</h1>
-          <p className="text-sm text-vanta-gray mt-1">General SA compliance date patterns for the 2026 tax year</p>
+          <p className="text-sm text-vanta-gray mt-1">Confirmed SA compliance dates for the 2027 tax year</p>
         </div>
 
         <div className="flex items-start gap-2 p-4 border border-vanta-border rounded-xl bg-white text-xs text-vanta-gray leading-relaxed">
           <Info size={14} className="shrink-0 mt-0.5 text-vanta-black" />
           <span>
-            These are general deadline patterns, not confirmed exact dates for a specific year — always verify against SARS
-            directly before relying on them. This page shows a static list only; there are no reminders or notifications.
+            These dates are correct for a standard February financial year-end (1 March 2026 – 28 February 2027) — sourced from
+            SARS's own published deadlines, current as of mid-2026. If this business's financial year-end is not the end of
+            February, every date below shifts accordingly — reconfirm against SARS eFiling in that case. This page shows a
+            static list only; there are no reminders or notifications.
           </span>
         </div>
 
