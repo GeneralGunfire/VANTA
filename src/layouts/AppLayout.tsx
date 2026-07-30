@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Home, BookOpen, Users, CalendarClock, Package, FolderLock, TrendingUp, FileText, FileCheck, Truck, History, Menu, LogOut, Search } from 'lucide-react';
+import { Home, BookOpen, Users, CalendarClock, Package, FolderLock, TrendingUp, FileText, FileCheck, Truck, History, HelpCircle, Menu, LogOut, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { APP_SURFACE, SHADOW_MD } from '../lib/surfaces';
@@ -34,6 +34,7 @@ const NAV_GROUPS: NavGroup[] = [
       { name: 'Inventory', path: '/app/inventory', icon: Package },
       { name: 'Suppliers', path: '/app/suppliers', icon: Truck },
       { name: 'Timeline', path: '/app/timeline', icon: History },
+      { name: 'What If', path: '/app/what-if', icon: HelpCircle },
       { name: 'Document Vault', path: '/app/documents', icon: FolderLock },
       { name: 'Business Record', path: '/app/business-record', icon: FileCheck },
     ],
