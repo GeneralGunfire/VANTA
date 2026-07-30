@@ -261,32 +261,48 @@ Deno.serve(async (req: Request) => {
       // invoice and a phantom sale). Validated the same way debt entries
       // are: the model's is_invoice_request flag is only trusted once a
       // recipient and at least one priced line item are both present.
-      invoiceRequests = rawEntries
-        .map((parsed) => {
-          const recipient =
-            typeof parsed.invoice_recipient === "string" && parsed.invoice_recipient.trim()
-              ? parsed.invoice_recipient.trim()
-              : null;
-          const rawItems = Array.isArray(parsed.invoice_line_items) ? parsed.invoice_line_items : [];
-          const lineItems = rawItems
-            .filter(
-              (li) =>
-                li &&
-                typeof li.description === "string" &&
-                li.description.trim() &&
-                typeof li.quantity === "number" &&
-                li.quantity > 0 &&
-                typeof li.unit_price === "number" &&
-                li.unit_price >= 0,
-            )
-            .map((li) => ({ description: li.description.trim(), quantity: li.quantity, unit_price: li.unit_price }));
+      //
+      // Bug found during the test/verification pass: this validation used
+      // to run separately from the nonInvoiceEntries filter below, which
+      // filtered on the model's RAW is_invoice_request flag instead of the
+      // validated result. An entry where the model set is_invoice_request
+      // true but gave no usable line items (e.g. "invoice Thabo for the
+      // bread he still owes me for" — no price) was correctly rejected as
+      // an invoice here, but ALSO excluded from nonInvoiceEntries by the
+      // raw-flag filter, so it fell into neither table — silently
+      // vanished, no transaction, no invoice, no debt, no error. Fixed by
+      // computing the validated invoice flag once per entry and using that
+      // same value for both decisions below.
+      const validateInvoice = (parsed: RawParsedTransaction) => {
+        const recipient =
+          typeof parsed.invoice_recipient === "string" && parsed.invoice_recipient.trim()
+            ? parsed.invoice_recipient.trim()
+            : null;
+        const rawItems = Array.isArray(parsed.invoice_line_items) ? parsed.invoice_line_items : [];
+        const lineItems = rawItems
+          .filter(
+            (li) =>
+              li &&
+              typeof li.description === "string" &&
+              li.description.trim() &&
+              typeof li.quantity === "number" &&
+              li.quantity > 0 &&
+              typeof li.unit_price === "number" &&
+              li.unit_price >= 0,
+          )
+          .map((li) => ({ description: li.description.trim(), quantity: li.quantity, unit_price: li.unit_price }));
 
-          const isInvoice = Boolean(parsed.is_invoice_request) && recipient !== null && lineItems.length > 0;
-          return isInvoice ? { recipient: recipient!, lineItems } : null;
-        })
-        .filter((x): x is { recipient: string; lineItems: { description: string; quantity: number; unit_price: number }[] } => x !== null);
+        const isInvoice = Boolean(parsed.is_invoice_request) && recipient !== null && lineItems.length > 0;
+        return isInvoice ? { recipient: recipient!, lineItems } : null;
+      };
 
-      const nonInvoiceEntries = rawEntries.filter((parsed) => !parsed.is_invoice_request);
+      const invoiceValidations = rawEntries.map(validateInvoice);
+
+      invoiceRequests = invoiceValidations.filter(
+        (x): x is { recipient: string; lineItems: { description: string; quantity: number; unit_price: number }[] } => x !== null,
+      );
+
+      const nonInvoiceEntries = rawEntries.filter((_, i) => invoiceValidations[i] === null);
 
       // Fixed during the test/verification pass: a debt statement like
       // "Thabo owes me R200 for bread" was previously ALSO inserted as a
