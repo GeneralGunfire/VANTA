@@ -3,8 +3,16 @@ import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { Upload, AlertTriangle, ArrowUpRight, ArrowDownLeft, RefreshCw, Send } from 'lucide-react';
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
+import { getAnonId } from '../lib/anonId';
 import { cn } from '../lib/utils';
+import { SHADOW_MD } from '../lib/surfaces';
 import type { AppShellContext } from '../layouts/AppLayout';
+import { useTransactions } from '../hooks/useTransactions';
+import { MetricStrip } from '../components/dashboard/MetricStrip';
+import { BusinessTrendChart } from '../components/dashboard/BusinessTrendChart';
+import { ActivityFeed } from '../components/dashboard/ActivityFeed';
+import { QuickActions } from '../components/dashboard/QuickActions';
+import TransactionDetailModal, { Transaction } from '../components/TransactionDetailModal';
 
 interface ParsedTransaction {
   id?: string;
@@ -33,13 +41,6 @@ const WELCOME: Message = {
   timestamp: '',
 };
 
-/** Real Vanta usage — not generic finance-app suggestions. */
-const EXAMPLE_PROMPTS = [
-  'sold 20 loaves, R400 cash',
-  'bought flour for R180',
-  "how's business this week?",
-];
-
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([WELCOME]);
   const [input, setInput] = useState('');
@@ -47,6 +48,9 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const composerRef = useRef<HTMLInputElement>(null);
+
+  const { transactions, isLoading: dashboardLoading, loadError: dashboardError } = useTransactions();
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
   // Collapses the sidebar while the composer is active. Blurring restores it,
   // so the nav is always one click (or Escape) away.
@@ -111,6 +115,7 @@ export default function ChatPage() {
       // when it describes multiple transactions at once).
       const { data, error } = await supabase.functions.invoke('parse-transaction', {
         body: { raw_input: currentQuery, source: 'text' },
+        headers: { 'x-vanta-anon-id': getAnonId() },
       });
 
       if (error) throw error;
@@ -197,6 +202,21 @@ export default function ChatPage() {
 
   const isEmpty = messages.length === 1 && messages[0].id === 'welcome';
 
+  /** Supplementary business context beside the composer — never the hero. */
+  const dashboardRail = (
+    <div className="w-full lg:w-80 shrink-0 space-y-4">
+      {dashboardError && (
+        <div role="alert" className="flex items-center gap-2 text-xs text-vanta-black px-1">
+          <AlertTriangle size={13} className="shrink-0" />
+          Couldn't load transactions: {dashboardError}
+        </div>
+      )}
+      <MetricStrip transactions={transactions} isLoading={dashboardLoading} />
+      <BusinessTrendChart transactions={transactions} isLoading={dashboardLoading} />
+      <ActivityFeed transactions={transactions} isLoading={dashboardLoading} onSelect={setSelectedTx} />
+    </div>
+  );
+
   const inputBar = (
     <form onSubmit={handleSubmit} className="group relative">
       <input
@@ -211,7 +231,13 @@ export default function ChatPage() {
         }}
       />
 
-      <div className="relative rounded-2xl bg-white border border-vanta-border shadow-[0_16px_40px_-20px_rgba(28,28,28,0.25)] group-focus-within:border-vanta-navy/50 group-focus-within:shadow-[0_20px_48px_-20px_rgba(30,90,168,0.25)] transition-all">
+      <div
+        className="relative flex items-center rounded-2xl border border-vanta-border bg-white transition-shadow duration-150 group-focus-within:border-vanta-navy/40 group-focus-within:ring-4 group-focus-within:ring-vanta-navy/8"
+        style={{ boxShadow: SHADOW_MD }}
+      >
+        <span className="pl-4.5 pr-1 text-vanta-gray-light text-[15px] font-medium select-none" aria-hidden="true">
+          R
+        </span>
         <input
           ref={composerRef}
           type="text"
@@ -220,14 +246,14 @@ export default function ChatPage() {
           onFocus={() => setComposerFocused(true)}
           onBlur={() => setComposerFocused(false)}
           placeholder="Tell me what happened…"
-          className="w-full bg-transparent pt-4.5 pb-4.5 pl-4.5 pr-24 text-vanta-black placeholder-vanta-gray focus:outline-none text-[15px]"
+          className="w-full bg-transparent py-4.5 pr-28 text-vanta-black placeholder-vanta-gray-light focus:outline-none text-[15px]"
         />
         <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             title="Attach an Excel or CSV file"
-            className="p-2 text-vanta-gray hover:text-vanta-black transition-colors rounded-lg hover:bg-black/5"
+            className="p-2 text-vanta-gray hover:text-vanta-black transition-colors duration-150 rounded-lg hover:bg-muted"
           >
             <Upload size={16} />
           </button>
@@ -235,19 +261,26 @@ export default function ChatPage() {
             type="submit"
             disabled={!input.trim() || isLoading}
             title="Send"
-            className="w-8 h-8 rounded-full bg-vanta-navy text-white flex items-center justify-center hover:bg-vanta-navy-dark transition-all disabled:opacity-30 active:scale-[0.95]"
+            className="w-8 h-8 rounded-full bg-vanta-navy text-white flex items-center justify-center transition-all duration-150 disabled:opacity-30 hover:bg-vanta-navy-dark active:scale-[0.95]"
           >
             <Send size={14} />
           </button>
         </div>
+        {!input && (
+          <span className="absolute right-28 top-1/2 -translate-y-1/2 text-[11px] font-mono text-vanta-gray-light bg-muted border border-vanta-border rounded px-1.5 py-0.5 pointer-events-none hidden sm:inline-block">
+            Enter
+          </span>
+        )}
       </div>
     </form>
   );
 
   if (isEmpty) {
     return (
-      <div className="flex-1 flex flex-col h-full relative overflow-y-auto overflow-x-hidden bg-white">
-        <div className="relative flex-1 flex flex-col items-center justify-center px-6 py-16 min-h-full">
+      <div className="flex-1 flex flex-col h-full relative overflow-y-auto overflow-x-hidden">
+        <TransactionDetailModal transaction={selectedTx} onClose={() => setSelectedTx(null)} />
+        <div className="relative flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center gap-10 px-6 py-16 min-h-full max-w-6xl mx-auto w-full">
+        <div className="flex-1 flex flex-col items-center min-w-0">
           {/* Woven wireframe rings — decorative, tuned to the two brand colors (near-black + accent blue) so it reads as Vanta, not generic AI-demo flavor */}
           <motion.div
             initial={{ opacity: 0, scale: 0.85 }}
@@ -259,12 +292,19 @@ export default function ChatPage() {
             }}
             className="relative w-64 h-64 mb-4"
           >
-            {/* Soft core shadow, grounds the orb against the white canvas */}
+            {/* Wide ambient glow — the hero moment behind the orb, tuned brighter so the canvas doesn't read as flat white */}
+            <motion.div
+              animate={{ opacity: [0.35, 0.55, 0.35], scale: [0.95, 1.1, 0.95] }}
+              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute -inset-16 rounded-full blur-3xl"
+              style={{ background: 'radial-gradient(circle, rgba(46,110,191,0.28) 0%, rgba(30,90,168,0.14) 45%, transparent 70%)' }}
+            />
+            {/* Tighter core shadow, grounds the orb */}
             <motion.div
               animate={{ opacity: [0.25, 0.4, 0.25], scale: [0.9, 1.05, 0.9] }}
               transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
               className="absolute inset-8 rounded-full blur-3xl"
-              style={{ background: 'radial-gradient(circle, rgba(30,90,168,0.22) 0%, rgba(28,28,28,0.08) 55%, transparent 75%)' }}
+              style={{ background: 'radial-gradient(circle, rgba(30,90,168,0.28) 0%, rgba(28,28,28,0.1) 55%, transparent 75%)' }}
             />
 
             {/* Four counter-rotating ring layers, near-black fading to accent blue */}
@@ -328,28 +368,30 @@ export default function ChatPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.18 }}
-            className="flex flex-wrap items-center justify-center gap-2 max-w-2xl w-full mt-6"
+            className="w-full max-w-2xl mt-6"
           >
-            {EXAMPLE_PROMPTS.map((prompt) => (
-              <button
-                key={prompt}
-                type="button"
-                onClick={() => handleQuickPrompt(prompt)}
-                className="rounded-full border border-vanta-border bg-white px-4 py-2 font-mono text-xs text-vanta-black transition-colors hover:border-vanta-navy/40 hover:bg-[#E8F0FA]"
-              >
-                "{prompt}"
-              </button>
-            ))}
+            <QuickActions onSelect={handleQuickPrompt} />
           </motion.div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.22 }}
+        >
+          {dashboardRail}
+        </motion.div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full relative overflow-hidden bg-white">
+    <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+      <TransactionDetailModal transaction={selectedTx} onClose={() => setSelectedTx(null)} />
       <div className="relative flex-1 overflow-y-auto px-6 md:px-12 pt-8 pb-40">
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8">
+        <div className="flex-1 min-w-0 space-y-6">
           {messages.map((msg) => (
             <motion.div
               key={msg.id}
@@ -359,7 +401,7 @@ export default function ChatPage() {
               className={cn('flex flex-col', msg.role === 'user' ? 'items-end' : 'items-start')}
             >
               {msg.role === 'user' && (
-                <div className="bg-vanta-navy text-white p-4 rounded-2xl rounded-br-md max-w-xl">
+                <div className="text-white p-4 rounded-2xl rounded-br-md max-w-xl shadow-[0_6px_18px_-8px_rgba(30,90,168,0.5)]" style={{ background: 'linear-gradient(155deg, #2E6EBF 0%, #1E5AA8 60%, #153F78 100%)' }}>
                   {msg.content}
                 </div>
               )}
@@ -377,7 +419,7 @@ export default function ChatPage() {
 
               {msg.role === 'assistant' && (
                 <div className="flex gap-4 max-w-2xl w-full">
-                  <div className="w-9 h-9 rounded-lg bg-vanta-navy text-white shrink-0 flex items-center justify-center font-serif font-semibold text-sm">
+                  <div className="w-9 h-9 rounded-lg text-white shrink-0 flex items-center justify-center font-serif font-semibold text-sm shadow-[0_4px_12px_-4px_rgba(30,90,168,0.6)]" style={{ background: 'linear-gradient(155deg, #2E6EBF 0%, #1E5AA8 60%, #153F78 100%)' }}>
                     V
                   </div>
                   <div className="flex-1 bg-white p-5 border border-vanta-border rounded-2xl rounded-tl-md">
@@ -391,7 +433,7 @@ export default function ChatPage() {
 
           {isLoading && (
             <div className="flex gap-4 max-w-2xl">
-              <div className="w-9 h-9 rounded-lg bg-vanta-navy text-white shrink-0 flex items-center justify-center animate-pulse">
+              <div className="w-9 h-9 rounded-lg text-white shrink-0 flex items-center justify-center animate-pulse shadow-[0_4px_12px_-4px_rgba(30,90,168,0.6)]" style={{ background: 'linear-gradient(155deg, #2E6EBF 0%, #1E5AA8 60%, #153F78 100%)' }}>
                 <RefreshCw size={15} className="animate-spin" />
               </div>
               <div className="flex-1 bg-white p-4 border border-vanta-border rounded-2xl rounded-tl-md text-vanta-gray text-sm italic flex items-center">
@@ -402,10 +444,19 @@ export default function ChatPage() {
 
           <div ref={messagesEndRef} />
         </div>
+
+        <div className="hidden lg:block">{dashboardRail}</div>
+        </div>
       </div>
 
       <div className="absolute bottom-6 left-6 right-6 z-30">
-        <div className="max-w-4xl mx-auto">{inputBar}</div>
+        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8">
+          <div className="flex-1 min-w-0 space-y-3">
+            {inputBar}
+            <QuickActions onSelect={handleQuickPrompt} />
+          </div>
+          <div className="hidden lg:block w-80 shrink-0" aria-hidden="true" />
+        </div>
       </div>
     </div>
   );

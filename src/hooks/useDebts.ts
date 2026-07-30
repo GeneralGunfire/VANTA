@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { getAnonId } from '../lib/anonId';
 
 export interface Debt {
   id: string;
-  user_id: string;
+  anon_id: string;
   party_name: string | null;
   direction: 'owed_to_business' | 'owed_by_business' | null;
   amount: number | null;
@@ -25,11 +26,10 @@ interface UseDebtsResult {
 }
 
 /**
- * Real Supabase queries only, same shape as useTransactions.ts. Because
- * this app has no real Supabase auth (see migration file header), RLS on
- * `debts` will make this query return zero rows for every user until real
- * auth is wired up — that's expected and flows through the normal
- * loading/error/empty ladder rather than being special-cased here.
+ * Real Supabase queries only, same shape as useTransactions.ts. Scoped by
+ * anon_id (see src/lib/anonId.ts) since this app has no real Supabase
+ * auth — RLS on `debts` is `using (true)`, so this client-side filter is
+ * the only scoping that exists.
  */
 export function useDebts(): UseDebtsResult {
   const [debts, setDebts] = useState<Debt[]>([]);
@@ -44,6 +44,7 @@ export function useDebts(): UseDebtsResult {
         const { data, error } = await supabase
           .from('debts')
           .select('*')
+          .eq('anon_id', getAnonId())
           .order('created_at', { ascending: false })
           .limit(500);
 

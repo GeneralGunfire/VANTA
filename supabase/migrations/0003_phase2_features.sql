@@ -1,94 +1,74 @@
--- Phase 2 features — Debtors & Creditors, Tax Calendar profile fields,
--- Inventory, Document Vault. Run manually in the Supabase SQL editor.
--- Not applied automatically — no migration/execute_sql/apply_migration
--- MCP tool was run against any live database while authoring this file.
+-- Vanta Phase 2 feature build — consolidated schema for all four new
+-- features (Debtors & Creditors, Tax Calendar, Inventory, Document Vault).
+-- Run this manually in the Supabase SQL editor. NOT applied automatically
+-- and NOT executed against any live database by the agent that wrote it.
 --
--- KNOWN GAP (documented, not silently papered over): every table below
--- uses `user_id uuid references auth.users(id)` with RLS policies of the
--- form `using (auth.uid() = user_id)`, per the master spec's data-scoping
--- decision. This app currently has NO real Supabase auth — AuthPage.tsx
--- is a fake localStorage-only flow, and `auth.uid()` is always null at
--- runtime. That means once RLS is enabled on these tables, they will be
--- UNREADABLE/UNWRITABLE by the current frontend (every query will return
--- zero rows via RLS, not an error) until real Supabase auth is wired up.
--- This is intentional: the schema is written correctly and future-proofed
--- for when real auth lands, rather than weakened to `using (true)` to
--- make it superficially "work" today. Frontend hooks built against these
--- tables are written as normal authenticated queries and will simply flow
--- through the existing loading/empty-state ladder in the meantime.
+-- Scoping convention: this app has no real Supabase auth (AuthPage.tsx is
+-- a fake localStorage-only sign-in flow — `localStorage.setItem
+-- ('vanta_auth_status', 'signed_in')` — it never calls Supabase auth, so
+-- `auth.uid()` is always null at runtime). Therefore every table here is
+-- scoped by a client-generated `anon_id text` column with an
+-- `using (true)` RLS policy — exactly matching the existing `transactions`
+-- table (see 0001_create_transactions.sql, and the anon_id column added
+-- to it in 0002_backend_build_pass.sql, and getAnonId() in
+-- supabase/functions/_shared/rateLimit.ts, and src/lib/anonId.ts for the
+-- new client-side counterpart). An earlier draft of this file used
+-- `auth.uid()`-based RLS; that was wrong for this app's actual runtime
+-- reality and has been replaced with the anon_id convention below.
 
--- ── Part 0: profiles + baseline RLS ──────────────────────────────────
--- Carried forward from the legacy migration at the outer repo root
--- (supabase/migrations/001_auth_and_profiles.sql, NOT part of the active
--- app/supabase/migrations sequence). Restated here because the active
--- sequence never created this table, and every other new table's
--- FK/RLS pattern in this file follows the same auth.users-based shape.
-create table if not exists profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  business_name text,
-  business_type text,
-  -- Part 2 additions — see "Part 2" section below for reasoning.
-  registration_status text check (registration_status in ('informal', 'registered_vat', 'not_yet_registered')),
-  vat_registration_date date,
-  created_at timestamptz default now()
-);
-
-alter table profiles enable row level security;
-
-create policy "Users can read own profile" on profiles
-  for select using (auth.uid() = id);
-
-create policy "Users can insert own profile" on profiles
-  for insert with check (auth.uid() = id);
-
-create policy "Users can update own profile" on profiles
-  for update using (auth.uid() = id);
-
-
--- ── Part 1: Debtors & Creditors ──────────────────────────────────────
-create table if not exists debts (
+-- ════════════════════════════════════════════════════════════════════
+-- Part 1: Debtors & Creditors
+-- ════════════════════════════════════════════════════════════════════
+create table debts (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) not null,
-  party_name text,
-  direction text check (direction in ('owed_to_business', 'owed_by_business')),
-  amount numeric,
+  anon_id text not null,
+  party_name text not null,
+  direction text not null check (direction in ('owed_to_business', 'owed_by_business')),
+  amount numeric not null,
   description text,
-  status text check (status in ('outstanding', 'settled')) default 'outstanding',
+  status text not null default 'outstanding' check (status in ('outstanding', 'settled')),
   created_at timestamptz default now(),
   settled_at timestamptz,
   transaction_id uuid references transactions(id)
 );
 
+create index debts_anon_id_idx on debts (anon_id);
+
 alter table debts enable row level security;
 
-create policy "Users can select own debts" on debts
-  for select using (auth.uid() = user_id);
+create policy "Allow anon read/write on debts" on debts
+  for all using (true) with check (true);
 
-create policy "Users can insert own debts" on debts
-  for insert with check (auth.uid() = user_id);
-
-create policy "Users can update own debts" on debts
-  for update using (auth.uid() = user_id);
-
-create policy "Users can delete own debts" on debts
-  for delete using (auth.uid() = user_id);
-
-create index if not exists debts_user_id_idx on debts (user_id);
-create index if not exists debts_status_idx on debts (status);
-
-
--- ── Part 2: Tax Calendar business profile fields ─────────────────────
--- registration_status / vat_registration_date columns are declared above
--- on `profiles` (kept in one table rather than a separate one — see
--- final report for reasoning). No further schema needed for Part 2; the
--- Tax Calendar page itself is a static compliance-date list, not backed
--- by new tables.
-
-
--- ── Part 3: Inventory ─────────────────────────────────────────────────
-create table if not exists inventory_items (
+-- ════════════════════════════════════════════════════════════════════
+-- Part 2: Tax & Compliance Calendar — business profile fields
+-- ════════════════════════════════════════════════════════════════════
+-- No `profiles` table is actually wired into this app's active frontend
+-- flow (checked src/ for onboarding/business-profile code in current use
+-- — there is none; AuthPage is the fake localStorage sign-in and nothing
+-- else reads/writes a profiles table). A small standalone table is
+-- created instead, scoped by anon_id like everything else tonight.
+create table business_profile (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) not null,
+  anon_id text not null unique,
+  registration_status text not null default 'informal'
+    check (registration_status in ('informal', 'registered_vat', 'not_yet_registered')),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index business_profile_anon_id_idx on business_profile (anon_id);
+
+alter table business_profile enable row level security;
+
+create policy "Allow anon read/write on business_profile" on business_profile
+  for all using (true) with check (true);
+
+-- ════════════════════════════════════════════════════════════════════
+-- Part 3: Simple Inventory / Stock Tracking
+-- ════════════════════════════════════════════════════════════════════
+create table inventory_items (
+  id uuid primary key default gen_random_uuid(),
+  anon_id text not null,
   item_name text not null,
   quantity numeric not null default 0,
   cost_price numeric,
@@ -97,73 +77,60 @@ create table if not exists inventory_items (
   updated_at timestamptz default now()
 );
 
+create index inventory_items_anon_id_idx on inventory_items (anon_id);
+
 alter table inventory_items enable row level security;
 
-create policy "Users can select own inventory" on inventory_items
-  for select using (auth.uid() = user_id);
+create policy "Allow anon read/write on inventory_items" on inventory_items
+  for all using (true) with check (true);
 
-create policy "Users can insert own inventory" on inventory_items
-  for insert with check (auth.uid() = user_id);
-
-create policy "Users can update own inventory" on inventory_items
-  for update using (auth.uid() = user_id);
-
-create policy "Users can delete own inventory" on inventory_items
-  for delete using (auth.uid() = user_id);
-
-create index if not exists inventory_items_user_id_idx on inventory_items (user_id);
-
-
--- ── Part 4: Document Vault — storage bucket + metadata table ─────────
--- CAVEAT (documented, do not assume this alone is sufficient): creating a
--- Storage bucket via a raw `insert into storage.buckets` in a SQL
--- migration is not always reliable — Supabase Storage buckets are also
--- commonly created via the Dashboard or the Supabase CLI (`supabase
--- storage`), and storage RLS depends on policies attached to
--- `storage.objects` (a system table with its own quirks), not just the
--- bucket row existing. The user should verify/create the `documents`
--- bucket via the Supabase Dashboard (Storage tab) or CLI tomorrow and
--- confirm these policies actually apply before relying on this.
+-- ════════════════════════════════════════════════════════════════════
+-- Part 4: Document Vault — storage bucket + metadata table
+-- ════════════════════════════════════════════════════════════════════
+-- Bucket created via SQL for consolidation into this one migration file.
+-- CAVEAT: creating storage buckets via raw SQL against `storage.buckets`
+-- is not guaranteed to behave identically across all Supabase project
+-- configurations — if this insert fails or behaves unexpectedly when run
+-- tomorrow, create the bucket via the Supabase Dashboard (Storage → New
+-- bucket → name "documents", private) or the Supabase CLI instead, then
+-- skip just this insert statement and continue with the policies below.
 insert into storage.buckets (id, name, public)
 values ('documents', 'documents', false)
 on conflict (id) do nothing;
 
--- Path convention: objects are stored as `{user_id}/{filename}`, so
--- storage.foldername(name))[1] (the first path segment) is the owning
--- user's id, matched against auth.uid().
-create policy "Users can read own documents"
-  on storage.objects for select
-  using (bucket_id = 'documents' and (storage.foldername(name))[1] = auth.uid()::text);
+-- Storage RLS: every object is expected to live under a path prefixed
+-- with the caller's anon_id, i.e. `{anon_id}/{filename}` (enforced
+-- client-side by DocumentsPage when it builds the upload path). Since
+-- there is no real auth.uid() to check against, these policies scope by
+-- bucket only — the same anon_id-as-shared-secret trust model as every
+-- other table tonight, not a stronger guarantee. Anyone with the public
+-- anon key and a guessed/known anon_id could in principle read or write
+-- into that folder. This matches the app's existing security posture (no
+-- real per-user auth exists anywhere yet); called out explicitly here
+-- since file storage is more sensitive than a DB row.
+create policy "Allow anon read on documents bucket" on storage.objects
+  for select using (bucket_id = 'documents');
 
-create policy "Users can upload own documents"
-  on storage.objects for insert
-  with check (bucket_id = 'documents' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "Allow anon insert on documents bucket" on storage.objects
+  for insert with check (bucket_id = 'documents');
 
-create policy "Users can delete own documents"
-  on storage.objects for delete
-  using (bucket_id = 'documents' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "Allow anon delete on documents bucket" on storage.objects
+  for delete using (bucket_id = 'documents');
 
--- Metadata table — chosen over relying solely on Storage's own listing
--- API because it lets the Documents page show a label, a stable created
--- record, and cheap deletion bookkeeping without extra Storage calls.
-create table if not exists documents (
+-- Metadata table — used for listing/sorting/labeling instead of relying
+-- solely on storage.list() (simpler to query, supports the category label).
+create table documents (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) not null,
-  file_path text not null,
+  anon_id text not null,
+  storage_path text not null,
   filename text not null,
-  label text,
+  category text check (category in ('Receipt', 'Invoice', 'Other')),
   uploaded_at timestamptz default now()
 );
 
+create index documents_anon_id_idx on documents (anon_id);
+
 alter table documents enable row level security;
 
-create policy "Users can select own documents" on documents
-  for select using (auth.uid() = user_id);
-
-create policy "Users can insert own documents" on documents
-  for insert with check (auth.uid() = user_id);
-
-create policy "Users can delete own documents" on documents
-  for delete using (auth.uid() = user_id);
-
-create index if not exists documents_user_id_idx on documents (user_id);
+create policy "Allow anon read/write on documents" on documents
+  for all using (true) with check (true);

@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { UserPlus, Check, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { getAnonId } from '../lib/anonId';
 import Modal from './Modal';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -48,6 +49,7 @@ export default function AddDebtModal({ isOpen, onClose, onAdd }: AddDebtModalPro
       const { data, error } = await supabase
         .from('debts')
         .insert({
+          anon_id: getAnonId(),
           party_name: values.party_name,
           direction: values.direction,
           amount: Number(values.amount),

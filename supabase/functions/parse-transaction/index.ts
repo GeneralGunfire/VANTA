@@ -295,6 +295,7 @@ Deno.serve(async (req: Request) => {
         .map((row: any, i: number) => ({ row, meta: debtMeta[i] }))
         .filter(({ meta }) => meta?.is_debt)
         .map(({ row, meta }) => ({
+          anon_id: anonId,
           party_name: meta.party_name,
           direction: meta.debt_direction,
           amount: row.amount,
