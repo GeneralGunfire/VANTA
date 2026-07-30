@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { Upload, AlertTriangle, ArrowUpRight, ArrowDownLeft, RefreshCw, Send } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { getAnonId } from '../lib/anonId';
@@ -94,13 +95,16 @@ export default function ChatPage() {
     composerRef.current?.focus();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    addMessage({ role: 'user', content: input });
-    const currentQuery = input;
-    setInput('');
+  /**
+   * Shared by both the text composer and the file-upload path — both end
+   * up calling parse-transaction with a single raw_input string (which may
+   * describe multiple transactions; the edge function's prompt already
+   * handles splitting a multi-line/multi-sentence input into several rows).
+   * The only difference is `source` and the user-facing label for the
+   * message bubble.
+   */
+  const submitToParser = async (rawInput: string, source: 'text' | 'excel', userLabel: string) => {
+    addMessage({ role: 'user', content: userLabel });
     setIsLoading(true);
 
     try {
@@ -113,7 +117,7 @@ export default function ChatPage() {
       // transaction — a single free-text message can yield several rows
       // when it describes multiple transactions at once).
       const { data, error } = await supabase.functions.invoke('parse-transaction', {
-        body: { raw_input: currentQuery, source: 'text' },
+        body: { raw_input: rawInput, source },
         headers: { 'x-vanta-anon-id': getAnonId() },
       });
 
@@ -138,6 +142,54 @@ export default function ChatPage() {
       // Honest failure — never invent a transaction to show in its place.
       addMessage({ role: 'error', content: `Couldn't parse that: ${err?.message ?? String(err)}` });
     } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const currentQuery = input;
+    setInput('');
+    await submitToParser(currentQuery, 'text', currentQuery);
+  };
+
+  const MAX_EXCEL_ROWS = 50;
+
+  /**
+   * Converts every non-empty row of the first sheet into one plain-text
+   * line (column values joined with spaces), then submits the whole file
+   * as a single raw_input — parse-transaction's existing multi-transaction
+   * detection in its prompt does the actual per-row splitting/extraction,
+   * exactly the same "bulk paste" path already supported for pasted text.
+   * Capped at MAX_EXCEL_ROWS lines to keep the prompt a reasonable size;
+   * anything beyond that is silently truncated and the user is told so.
+   */
+  const handleFileUpload = async (file: File) => {
+    setIsLoading(true);
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      if (!firstSheetName) throw new Error('No sheet found in that file.');
+
+      const sheet = workbook.Sheets[firstSheetName];
+      const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false });
+
+      const lines = rows
+        .map((row) => row.map((cell) => String(cell ?? '').trim()).filter(Boolean).join(' '))
+        .filter((line) => line.length > 0)
+        .slice(0, MAX_EXCEL_ROWS);
+
+      if (lines.length === 0) throw new Error('No usable rows found in that file.');
+
+      const rawInput = lines.join('\n');
+      const truncatedNote = rows.length > MAX_EXCEL_ROWS ? ` (first ${MAX_EXCEL_ROWS} rows only)` : '';
+      await submitToParser(rawInput, 'excel', `Uploaded file: ${file.name}${truncatedNote}`);
+    } catch (err: any) {
+      console.error('Error reading uploaded file:', err);
+      addMessage({ role: 'error', content: `Couldn't read "${file.name}": ${err?.message ?? String(err)}` });
       setIsLoading(false);
     }
   };
@@ -223,9 +275,9 @@ export default function ChatPage() {
         className="hidden"
         accept=".xlsx,.xls,.csv"
         onChange={(e) => {
-          if (e.target.files?.[0]) {
-            setInput(`Uploaded file: ${e.target.files[0].name} — file parsing isn't wired up yet, describe it in words instead.`);
-          }
+          const file = e.target.files?.[0];
+          if (file) handleFileUpload(file);
+          e.target.value = '';
         }}
       />
 
