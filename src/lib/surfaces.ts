@@ -1,20 +1,28 @@
 /**
- * Shared surfaces for the app shell and marketing pages.
+ * Shared surfaces for the app shell.
  *
- * Design system: white ground, near-black text, a single confident blue
- * accent (#1E5AA8) with a light tint (#E8F0FA) and dark shade (#153F78) for
- * emphasis states. No second accent color, no dark/charcoal theming —
- * every page in the product reads on the same light, calm surface.
+ * Design language: Linear / Stripe / Raycast-inspired. Depth comes from
+ * spacing, typography, borders, and layered shadows — never gradients or
+ * glass. Every surface is a flat, warm-neutral or white fill.
  */
 
-/** The page canvas behind chat and ledger content. Plain white — the product's ground truth. */
-export const APP_SURFACE = '#FFFFFF';
+/** The page canvas behind chat and ledger content — warm neutral, not white. */
+export const APP_SURFACE = '#F7F8FA';
 
-/** Navigation panel — a hair off-white so it reads as a distinct plane from the canvas. */
-export const SIDEBAR_SURFACE = '#F7F9FC';
+/** Navigation panel — a hair lighter than the canvas so it reads as a distinct plane. */
+export const SIDEBAR_SURFACE = '#FBFBFC';
 
-/** Raised cards and modals. */
+/** Raised cards, panels, and modals — flat white. */
 export const RAISED_SURFACE = '#FFFFFF';
+export const CARD_SURFACE = '#FFFFFF';
 
-/** The hero panel on Auth and the accent block on Landing — the one place the blue accent fills a large area. */
-export const ACCENT_SURFACE = 'linear-gradient(155deg, #2E6EBF 0%, #1E5AA8 45%, #153F78 100%)';
+/** Icon containers inside cards — a faint tint of the single accent, never a gradient. */
+export const CHIP_SURFACE = '#EFF4FE';
+
+/** Flat accent panel (e.g. Auth's branding side) — solid fill, no gradient. */
+export const ACCENT_SURFACE = '#2563EB';
+
+/** Layered shadow scale — apply as inline style or via the shadow-vanta-* theme tokens. */
+export const SHADOW_SM = '0 1px 2px rgba(17,24,39,0.03)';
+export const SHADOW_MD = '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)';
+export const SHADOW_LG = '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05), 0 30px 60px rgba(17,24,39,0.04)';
