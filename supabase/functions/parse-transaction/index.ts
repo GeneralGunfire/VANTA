@@ -25,7 +25,10 @@ const TRANSACTION_SHAPE = `{
   "confidence": number between 0 and 1,
   "is_debt": boolean,
   "party_name": string or null,
-  "debt_direction": "owed_to_business" | "owed_by_business" | null
+  "debt_direction": "owed_to_business" | "owed_by_business" | null,
+  "is_invoice_request": boolean,
+  "invoice_recipient": string or null,
+  "invoice_line_items": [{ "description": string, "quantity": number, "unit_price": number }] or null
 }`;
 
 const SYSTEM_PROMPT = `You are a bookkeeping assistant for small, informal South African businesses. You will be given a short piece of raw text describing one or more business transactions (this may be free-text typed by the user, or a row extracted from a spreadsheet).
@@ -69,6 +72,17 @@ Debt detection (applies in addition to the normal transaction fields above):
   - "Thabo owes me R200 for bread" → is_debt: true, party_name: "Thabo", debt_direction: "owed_to_business".
   - "I owe Sipho R500" → is_debt: true, party_name: "Sipho", debt_direction: "owed_by_business".
   - "Sold bread R400 cash" → is_debt: false, party_name: null, debt_direction: null (a normal cash sale, no debt).
+
+Invoice-request detection (applies in addition to the fields above, and is mutually exclusive with a normal transaction — an invoice request describes work/goods to be billed, not money that has already moved):
+- Every transaction object must also include "is_invoice_request", "invoice_recipient", and "invoice_line_items".
+- Set "is_invoice_request": true ONLY when the input explicitly asks to invoice, bill, or quote someone for specific work/goods — language like "invoice X for...", "bill X for...", "send X a quote for...". This is a request to CREATE A DOCUMENT, not a record of money received or spent — do not also treat it as a normal transaction or a debt. When is_invoice_request is true, set amount to null, direction to null, is_debt to false, party_name to null, debt_direction to null — the invoice fields below carry all the real information instead.
+- When is_invoice_request is true:
+  - "invoice_recipient": the person or business being invoiced (e.g. "Sipho"). If no recipient is named, set is_invoice_request back to false — an invoice without a recipient is not usable.
+  - "invoice_line_items": an array of { description, quantity, unit_price }, one per distinct item/service mentioned. Extract quantity and unit price directly from the input; if only a total is given with no breakdown, use a single line item with quantity 1 and unit_price equal to the total. If neither quantity, unit price, nor total can be determined for a line item, set is_invoice_request back to false — an invoice needs at least one priced line item.
+- Examples:
+  - "invoice Sipho for 3 deliveries at R150 each" → is_invoice_request: true, invoice_recipient: "Sipho", invoice_line_items: [{ description: "deliveries", quantity: 3, unit_price: 150 }].
+  - "bill Thandi R800 for the catering" → is_invoice_request: true, invoice_recipient: "Thandi", invoice_line_items: [{ description: "catering", quantity: 1, unit_price: 800 }].
+  - "Sold bread R400 cash" → is_invoice_request: false, invoice_recipient: null, invoice_line_items: null (money already received, not an invoice request).
 - Never return anything except the JSON object or JSON array.`;
 
 function stripCodeFences(text: string): string {
@@ -138,6 +152,11 @@ Deno.serve(async (req: Request) => {
     // only confirm category/direction, never party names).
     let debtMeta: Array<{ is_debt: boolean; party_name: string | null; debt_direction: string | null }> = [];
 
+    // Round 2 Part 2: invoice-request entries detected in this input,
+    // fully separate from rowsToInsert/debtMeta — see the filtering logic
+    // below where rawEntries is split into invoice vs. non-invoice.
+    let invoiceRequests: Array<{ recipient: string; lineItems: { description: string; quantity: number; unit_price: number }[] }> = [];
+
     let estimatedTokens = 0;
     let estimatedCostUsd = 0;
 
@@ -201,6 +220,9 @@ Deno.serve(async (req: Request) => {
         is_debt?: boolean;
         party_name?: string | null;
         debt_direction?: string | null;
+        is_invoice_request?: boolean;
+        invoice_recipient?: string | null;
+        invoice_line_items?: Array<{ description: string; quantity: number; unit_price: number }> | null;
       }
 
       // The model returns either a single transaction object or a JSON
@@ -227,7 +249,41 @@ Deno.serve(async (req: Request) => {
         ];
       }
 
-      rowsToInsert = rawEntries.map((parsed) => {
+      // Invoice-request entries are extracted here and never enter
+      // rowsToInsert at all — an invoice request describes work to be
+      // billed, not money that has already moved, so it must not also
+      // create a transactions row (that would double up as both an
+      // invoice and a phantom sale). Validated the same way debt entries
+      // are: the model's is_invoice_request flag is only trusted once a
+      // recipient and at least one priced line item are both present.
+      invoiceRequests = rawEntries
+        .map((parsed) => {
+          const recipient =
+            typeof parsed.invoice_recipient === "string" && parsed.invoice_recipient.trim()
+              ? parsed.invoice_recipient.trim()
+              : null;
+          const rawItems = Array.isArray(parsed.invoice_line_items) ? parsed.invoice_line_items : [];
+          const lineItems = rawItems
+            .filter(
+              (li) =>
+                li &&
+                typeof li.description === "string" &&
+                li.description.trim() &&
+                typeof li.quantity === "number" &&
+                li.quantity > 0 &&
+                typeof li.unit_price === "number" &&
+                li.unit_price >= 0,
+            )
+            .map((li) => ({ description: li.description.trim(), quantity: li.quantity, unit_price: li.unit_price }));
+
+          const isInvoice = Boolean(parsed.is_invoice_request) && recipient !== null && lineItems.length > 0;
+          return isInvoice ? { recipient: recipient!, lineItems } : null;
+        })
+        .filter((x): x is { recipient: string; lineItems: { description: string; quantity: number; unit_price: number }[] } => x !== null);
+
+      const nonInvoiceEntries = rawEntries.filter((parsed) => !parsed.is_invoice_request);
+
+      rowsToInsert = nonInvoiceEntries.map((parsed) => {
         const amount = typeof parsed.amount === "number" ? parsed.amount : null;
         const direction = parsed.direction === "in" || parsed.direction === "out" ? parsed.direction : null;
         const category = CATEGORIES.includes(parsed.category ?? "") ? parsed.category : "Other";
@@ -256,7 +312,7 @@ Deno.serve(async (req: Request) => {
       // likely miss indirect phrasing, does not dedup or match against
       // existing debtor names, and has no concept of partial payments.
       // See final report for full limitations.
-      debtMeta = rawEntries.map((parsed) => {
+      debtMeta = nonInvoiceEntries.map((parsed) => {
         const debt_direction =
           parsed.debt_direction === "owed_to_business" || parsed.debt_direction === "owed_by_business"
             ? parsed.debt_direction
@@ -267,7 +323,13 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { data, error } = await supabase.from("transactions").insert(rowsToInsert).select();
+    // rowsToInsert can be empty when the whole input was one or more
+    // invoice requests and nothing else (e.g. "invoice Sipho for 3
+    // deliveries at R150 each" on its own) — skip the transactions insert
+    // entirely in that case rather than sending an empty insert.
+    const { data, error } = rowsToInsert.length > 0
+      ? await supabase.from("transactions").insert(rowsToInsert).select()
+      : { data: [] as any[], error: null };
 
     // Part 2: log this request regardless of outcome (success, DB error,
     // rule match, or Groq call) — logging must not depend on success.
@@ -312,6 +374,34 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Round 2 Part 2: insert any detected invoice requests as draft
+    // invoices. Each line item's line total is computed here in code
+    // (quantity * unit_price), never asked of the model — the model only
+    // ever supplies quantity and unit_price per item. Best-effort, same
+    // as debt insertion above: a failure here does not fail the overall
+    // request.
+    const createdInvoices: any[] = [];
+    if (invoiceRequests.length > 0) {
+      const invoiceRows = invoiceRequests.map(({ recipient, lineItems }) => {
+        const itemsWithTotals = lineItems.map((li) => ({ ...li, line_total: li.quantity * li.unit_price }));
+        const total = itemsWithTotals.reduce((sum, li) => sum + li.line_total, 0);
+        return {
+          anon_id: anonId,
+          recipient_name: recipient,
+          line_items: itemsWithTotals,
+          total,
+          status: "draft",
+        };
+      });
+
+      const { data: invoiceData, error: invoiceError } = await supabase.from("invoices").insert(invoiceRows).select();
+      if (invoiceError) {
+        console.error("Failed to insert invoice row(s):", invoiceError.message);
+      } else if (invoiceData) {
+        createdInvoices.push(...invoiceData);
+      }
+    }
+
     // `transactions` is always an array, even for the single-transaction
     // case, so a caller that wants to handle bulk results has one uniform
     // shape to work with. The current frontend (src/lib/supabaseClient.ts)
@@ -320,9 +410,11 @@ Deno.serve(async (req: Request) => {
     // existing call site working unmodified for single-transaction input
     // (still its only real-world case today) without this backend-only
     // pass touching frontend code. A caller that wants multi-transaction
-    // support should read `transactions` instead. See final report.
+    // support should read `transactions` instead. `invoices` is new in
+    // Round 2 Part 2 and is always an array (possibly empty) of any
+    // draft invoices created from this input.
     const firstRow = Array.isArray(data) ? data[0] : undefined;
-    return new Response(JSON.stringify({ ...firstRow, transactions: data }), {
+    return new Response(JSON.stringify({ ...firstRow, transactions: data, invoices: createdInvoices }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
