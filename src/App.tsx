@@ -14,6 +14,7 @@ import DebtorsPage from './pages/DebtorsPage';
 import TaxCalendarPage from './pages/TaxCalendarPage';
 import InventoryPage from './pages/InventoryPage';
 import DocumentsPage from './pages/DocumentsPage';
+import ForecastPage from './pages/ForecastPage';
 import { Toaster } from './components/ui/sonner';
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="tax-calendar" element={<TaxCalendarPage />} />
           <Route path="inventory" element={<InventoryPage />} />
           <Route path="documents" element={<DocumentsPage />} />
+          <Route path="forecast" element={<ForecastPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
