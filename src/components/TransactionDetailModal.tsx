@@ -17,6 +17,7 @@ export interface Transaction {
   date?: string;
   needs_review?: boolean;
   confidence?: number;
+  supplier_name?: string | null;
 }
 
 interface TransactionDetailModalProps {

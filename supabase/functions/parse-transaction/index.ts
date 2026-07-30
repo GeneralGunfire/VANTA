@@ -28,7 +28,8 @@ const TRANSACTION_SHAPE = `{
   "debt_direction": "owed_to_business" | "owed_by_business" | null,
   "is_invoice_request": boolean,
   "invoice_recipient": string or null,
-  "invoice_line_items": [{ "description": string, "quantity": number, "unit_price": number }] or null
+  "invoice_line_items": [{ "description": string, "quantity": number, "unit_price": number }] or null,
+  "supplier_name": string or null
 }`;
 
 const SYSTEM_PROMPT = `You are a bookkeeping assistant for small, informal South African businesses. You will be given a short piece of raw text describing one or more business transactions (this may be free-text typed by the user, or a row extracted from a spreadsheet).
@@ -83,6 +84,15 @@ Invoice-request detection (applies in addition to the fields above, and is mutua
   - "invoice Sipho for 3 deliveries at R150 each" → is_invoice_request: true, invoice_recipient: "Sipho", invoice_line_items: [{ description: "deliveries", quantity: 3, unit_price: 150 }].
   - "bill Thandi R800 for the catering" → is_invoice_request: true, invoice_recipient: "Thandi", invoice_line_items: [{ description: "catering", quantity: 1, unit_price: 800 }].
   - "Sold bread R400 cash" → is_invoice_request: false, invoice_recipient: null, invoice_line_items: null (money already received, not an invoice request).
+
+Supplier detection (applies only to "out" transactions — money spent buying goods/stock/services from someone):
+- Set "supplier_name" to the name of the person or business the money was paid TO, ONLY when it is explicitly and unambiguously named in the input — e.g. "bought flour from Sipho's Wholesale, R300" → supplier_name: "Sipho's Wholesale". If no supplier is named, or the input only describes what was bought without saying who from (e.g. "bought flour R180"), set supplier_name to null — do not guess or infer a supplier name from the item description alone.
+- This field is independent of is_debt/is_invoice_request — a transaction can have a supplier_name and also be a normal, fully-confirmed "out" transaction at the same time.
+- Examples:
+  - "bought flour from Sipho's Wholesale, R300" → supplier_name: "Sipho's Wholesale".
+  - "paid Thabo's Hardware R450 for tools" → supplier_name: "Thabo's Hardware".
+  - "bought flour R180" → supplier_name: null (no supplier named).
+  - "paid rent R1200" → supplier_name: null (a landlord isn't a goods/stock supplier in the sense this field means, and none is named anyway).
 - Never return anything except the JSON object or JSON array.`;
 
 function stripCodeFences(text: string): string {
@@ -144,6 +154,7 @@ Deno.serve(async (req: Request) => {
       confidence: number;
       needs_review: boolean;
       anon_id: string;
+      supplier_name: string | null;
     }>;
 
     // Part 1: debt-detection metadata, parallel array to rowsToInsert
@@ -177,6 +188,7 @@ Deno.serve(async (req: Request) => {
           confidence: RULE_MATCH_CONFIDENCE,
           needs_review: RULE_MATCH_CONFIDENCE < 0.7,
           anon_id: anonId,
+          supplier_name: null, // rules only ever confirm category/direction, never extract a supplier name
         },
       ];
     } else {
@@ -228,6 +240,7 @@ Deno.serve(async (req: Request) => {
         is_invoice_request?: boolean;
         invoice_recipient?: string | null;
         invoice_line_items?: Array<{ description: string; quantity: number; unit_price: number }> | null;
+        supplier_name?: string | null;
       }
 
       // The model returns either a single transaction object or a JSON
@@ -340,6 +353,18 @@ Deno.serve(async (req: Request) => {
         const confidence = typeof parsed.confidence === "number" ? Math.max(0, Math.min(1, parsed.confidence)) : 0;
         const needs_review = confidence < 0.7;
 
+        // Supplier Tracking: only meaningful for "out" transactions and
+        // only trusted when the model explicitly named someone — never
+        // inferred from the item description alone (see prompt rules
+        // above). Applied regardless of direction here since the model
+        // is already instructed to only ever set it for "out" transactions;
+        // this is just a defensive belt-and-braces guard against a model
+        // slip, not a second source of truth.
+        const supplier_name =
+          direction === "out" && typeof parsed.supplier_name === "string" && parsed.supplier_name.trim()
+            ? parsed.supplier_name.trim()
+            : null;
+
         return {
           // Full original raw input preserved on every row, even for a
           // bulk submission that produced multiple rows, so the audit
@@ -353,6 +378,7 @@ Deno.serve(async (req: Request) => {
           confidence,
           needs_review,
           anon_id: anonId,
+          supplier_name,
         };
       });
 
