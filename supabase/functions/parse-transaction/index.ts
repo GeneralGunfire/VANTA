@@ -150,11 +150,16 @@ Deno.serve(async (req: Request) => {
     // (same index), populated only for the LLM-parsed path — the
     // deterministic rules-layer match below never produces a debt (rules
     // only confirm category/direction, never party names).
-    let debtMeta: Array<{ is_debt: boolean; party_name: string | null; debt_direction: string | null }> = [];
+    let debtRequests: Array<{
+      party_name: string;
+      direction: "owed_to_business" | "owed_by_business";
+      amount: number;
+      description: string | null;
+    }> = [];
 
     // Round 2 Part 2: invoice-request entries detected in this input,
-    // fully separate from rowsToInsert/debtMeta — see the filtering logic
-    // below where rawEntries is split into invoice vs. non-invoice.
+    // fully separate from rowsToInsert/debtRequests — see the filtering
+    // logic below where rawEntries is split into invoice vs. non-invoice.
     let invoiceRequests: Array<{ recipient: string; lineItems: { description: string; quantity: number; unit_price: number }[] }> = [];
 
     let estimatedTokens = 0;
@@ -283,7 +288,25 @@ Deno.serve(async (req: Request) => {
 
       const nonInvoiceEntries = rawEntries.filter((parsed) => !parsed.is_invoice_request);
 
-      rowsToInsert = nonInvoiceEntries.map((parsed) => {
+      // Fixed during the test/verification pass: a debt statement like
+      // "Thabo owes me R200 for bread" was previously ALSO inserted as a
+      // normal transactions row (an "in" sale), which is wrong — the money
+      // has not actually moved yet, only a debt exists. Debt entries are
+      // now excluded from rowsToInsert entirely, the same way invoice
+      // entries already were, so a pure debt statement creates only a
+      // `debts` row and nothing in the ledger.
+      const isPureDebtEntry = (parsed: RawParsedTransaction) => {
+        const debt_direction =
+          parsed.debt_direction === "owed_to_business" || parsed.debt_direction === "owed_by_business"
+            ? parsed.debt_direction
+            : null;
+        const party_name = typeof parsed.party_name === "string" && parsed.party_name.trim() ? parsed.party_name.trim() : null;
+        return Boolean(parsed.is_debt) && party_name !== null && debt_direction !== null;
+      };
+
+      const ledgerEntries = nonInvoiceEntries.filter((parsed) => !isPureDebtEntry(parsed));
+
+      rowsToInsert = ledgerEntries.map((parsed) => {
         const amount = typeof parsed.amount === "number" ? parsed.amount : null;
         const direction = parsed.direction === "in" || parsed.direction === "out" ? parsed.direction : null;
         const category = CATEGORIES.includes(parsed.category ?? "") ? parsed.category : "Other";
@@ -307,20 +330,29 @@ Deno.serve(async (req: Request) => {
         };
       });
 
+      // debtRequests is built from the full nonInvoiceEntries list (not
+      // ledgerEntries) — debt rows are inserted separately below and never
+      // touch rowsToInsert/data, so there is no index alignment to worry
+      // about between the two inserts.
       // This is inherently fuzzy NL classification — it relies entirely
       // on the LLM correctly recognizing "owes"/"I owe" language, will
       // likely miss indirect phrasing, does not dedup or match against
       // existing debtor names, and has no concept of partial payments.
       // See final report for full limitations.
-      debtMeta = nonInvoiceEntries.map((parsed) => {
-        const debt_direction =
-          parsed.debt_direction === "owed_to_business" || parsed.debt_direction === "owed_by_business"
-            ? parsed.debt_direction
-            : null;
-        const party_name = typeof parsed.party_name === "string" && parsed.party_name.trim() ? parsed.party_name.trim() : null;
-        const is_debt = Boolean(parsed.is_debt) && party_name !== null && debt_direction !== null;
-        return { is_debt, party_name, debt_direction };
-      });
+      // debts.amount is NOT NULL — a debt statement with no extractable
+      // amount ("Thabo owes me for the bread") is not usable as a debt
+      // row and is silently dropped (not inserted anywhere) rather than
+      // failing the whole request or inserting a 0 that would misstate
+      // what's owed.
+      debtRequests = nonInvoiceEntries
+        .filter(isPureDebtEntry)
+        .filter((parsed) => typeof parsed.amount === "number")
+        .map((parsed) => ({
+          party_name: (parsed.party_name as string).trim(),
+          direction: parsed.debt_direction as "owed_to_business" | "owed_by_business",
+          amount: parsed.amount as number,
+          description: typeof parsed.description === "string" ? parsed.description : null,
+        }));
     }
 
     // rowsToInsert can be empty when the whole input was one or more
@@ -347,30 +379,27 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Part 1: for any transaction the model flagged as a debt (index-
-    // aligned with rowsToInsert/data), insert a corresponding `debts` row
-    // linked back via transaction_id. Best-effort — a failure here does
-    // not roll back or fail the transaction insert above; it's logged
-    // and swallowed so debt detection never blocks normal ledger entry.
-    if (Array.isArray(data) && debtMeta.length === data.length) {
-      const debtRows = data
-        .map((row: any, i: number) => ({ row, meta: debtMeta[i] }))
-        .filter(({ meta }) => meta?.is_debt)
-        .map(({ row, meta }) => ({
-          anon_id: anonId,
-          party_name: meta.party_name,
-          direction: meta.debt_direction,
-          amount: row.amount,
-          description: row.description,
-          status: "outstanding",
-          transaction_id: row.id,
-        }));
+    // Fixed during the test/verification pass: debt entries are detected
+    // independently now (see isPureDebtEntry above) and never appear in
+    // rowsToInsert/data at all — a pure debt statement no longer also
+    // creates a phantom transactions row. transaction_id is left null
+    // here since there is no corresponding transaction. Best-effort — a
+    // failure here does not fail the overall request; it's logged and
+    // swallowed so debt detection never blocks normal ledger entry.
+    if (debtRequests.length > 0) {
+      const debtRows = debtRequests.map((req) => ({
+        anon_id: anonId,
+        party_name: req.party_name,
+        direction: req.direction,
+        amount: req.amount,
+        description: req.description,
+        status: "outstanding",
+        transaction_id: null,
+      }));
 
-      if (debtRows.length > 0) {
-        const { error: debtError } = await supabase.from("debts").insert(debtRows);
-        if (debtError) {
-          console.error("Failed to insert debt row(s):", debtError.message);
-        }
+      const { error: debtError } = await supabase.from("debts").insert(debtRows);
+      if (debtError) {
+        console.error("Failed to insert debt row(s):", debtError.message);
       }
     }
 
