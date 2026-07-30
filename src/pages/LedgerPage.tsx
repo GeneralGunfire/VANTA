@@ -1,10 +1,21 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { Plus, Search, AlertTriangle } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Plus, Search, AlertTriangle, ArrowUpDown } from 'lucide-react';
 import { motion } from 'motion/react';
-import { supabase } from '../lib/supabase';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  createColumnHelper,
+  flexRender,
+  type SortingState,
+} from '@tanstack/react-table';
 import { cn } from '../lib/utils';
+import { SHADOW_SM } from '../lib/surfaces';
 import TransactionDetailModal, { Transaction } from '../components/TransactionDetailModal';
 import AddTransactionModal from '../components/AddTransactionModal';
+import { useTransactions } from '../hooks/useTransactions';
+import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '../components/ui/table';
 
 const TRANSACTION_CATEGORIES = ['Sales', 'Stock', 'Rent', 'Utilities', 'Transport', 'Wages', 'Other'];
 
@@ -18,46 +29,36 @@ const CATEGORY_TYPE: Record<string, string> = {
   Other: 'Expense',
 };
 
+interface LedgerRow {
+  tx: Transaction;
+  month: string;
+  date: string;
+  accountType: string;
+  debit: number;
+  credit: number;
+  runningBalance: number;
+}
+
+const columnHelper = createColumnHelper<LedgerRow>();
+
 export default function LedgerPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const { transactions, isLoading, loadError, addTransaction } = useTransactions();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'in' | 'out' | 'needs_review'>('all');
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [sorting, setSorting] = useState<SortingState>([]);
 
+  // The command palette's "Add transaction" action hands this over via router
+  // state (same convention as ChatPage's prefill) so it works from any page.
+  const location = useLocation();
+  const navigate = useNavigate();
   useEffect(() => {
-    async function fetchTransactions() {
-      try {
-        if (!supabase) throw new Error('Supabase is not configured — check VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY.');
-
-        const { data, error } = await supabase
-          .from('transactions')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(200);
-
-        if (error) throw error;
-        setTransactions((data ?? []) as Transaction[]);
-      } catch (err: any) {
-        // Honest failure — never substitute fabricated rows for a real
-        // fetch error or an empty table. An empty table is a real, valid
-        // state (a brand-new business with no transactions yet) and is
-        // handled separately below, not here.
-        console.error('Error fetching transactions:', err);
-        setLoadError(err?.message ?? String(err));
-      } finally {
-        setIsLoading(false);
-      }
+    if ((location.state as { openAddModal?: boolean } | null)?.openAddModal) {
+      setIsAddModalOpen(true);
+      navigate(location.pathname, { replace: true, state: null });
     }
-
-    fetchTransactions();
-  }, []);
-
-  const handleAddNewTransaction = (newTx: Transaction) => {
-    setTransactions((prev) => [newTx, ...prev]);
-  };
+  }, [location.pathname, location.state, navigate]);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
@@ -75,7 +76,10 @@ export default function LedgerPage() {
 
   const OPENING_BALANCE = 10000;
 
-  const ledgerRows = useMemo(() => {
+  // Running balance is defined by chronological posting order, not by
+  // whatever the user is currently sorting the view by — so it's computed
+  // once here, upstream of the table, and never recalculated on sort.
+  const ledgerRows: LedgerRow[] = useMemo(() => {
     const sorted = [...filteredTransactions].sort(
       (a, b) => new Date(a.date || a.created_at).getTime() - new Date(b.date || b.created_at).getTime(),
     );
@@ -106,10 +110,80 @@ export default function LedgerPage() {
 
   const fmt = (n: number) => n.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor('month', {
+        header: 'Month',
+        cell: (info) => <span className="text-vanta-gray">{info.getValue()}</span>,
+      }),
+      columnHelper.accessor('date', {
+        header: 'Date',
+        cell: (info) => <span className="text-vanta-gray font-mono">{info.getValue()}</span>,
+      }),
+      columnHelper.display({
+        id: 'description',
+        header: 'Account Name',
+        cell: ({ row }) => (
+          <span className="text-vanta-black font-medium">
+            {row.original.tx.description || row.original.tx.raw_input || '—'}
+          </span>
+        ),
+      }),
+      columnHelper.accessor((row) => row.tx.category, {
+        id: 'category',
+        header: 'Category',
+        cell: ({ row }) => (
+          <span className="text-vanta-gray">
+            {row.original.tx.category}
+            {row.original.tx.needs_review && (
+              <AlertTriangle size={12} className="inline-block ml-1.5 -mt-0.5 text-vanta-black" />
+            )}
+          </span>
+        ),
+      }),
+      columnHelper.accessor('accountType', {
+        header: 'Description',
+        cell: (info) => <span className="text-vanta-gray">{info.getValue()}</span>,
+      }),
+      columnHelper.accessor('debit', {
+        header: 'Debit',
+        cell: (info) => (
+          <span className="text-right font-mono text-vanta-black block">
+            {info.getValue() > 0 ? `R${fmt(info.getValue())}` : '—'}
+          </span>
+        ),
+      }),
+      columnHelper.accessor('credit', {
+        header: 'Credit',
+        cell: (info) => (
+          <span className="text-right font-mono text-vanta-black block">
+            {info.getValue() > 0 ? `R${fmt(info.getValue())}` : '—'}
+          </span>
+        ),
+      }),
+      columnHelper.accessor('runningBalance', {
+        header: 'Running Balance',
+        cell: (info) => (
+          <span className="text-right font-mono font-semibold text-vanta-black block">R{fmt(info.getValue())}</span>
+        ),
+      }),
+    ],
+    [],
+  );
+
+  const table = useReactTable({
+    data: ledgerRows,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
+
   return (
     <div className="relative flex-1 overflow-y-auto pt-12 px-6 md:px-12 lg:px-16 pb-32">
       <TransactionDetailModal transaction={selectedTx} onClose={() => setSelectedTx(null)} />
-      <AddTransactionModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={handleAddNewTransaction} />
+      <AddTransactionModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={addTransaction} />
 
       <div className="relative max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-6">
@@ -119,35 +193,50 @@ export default function LedgerPage() {
           </div>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="bg-vanta-navy text-white px-5 py-2.5 text-xs font-semibold hover:bg-vanta-navy-dark transition-all flex items-center gap-2 rounded-lg active:scale-[0.98]"
+            className="bg-vanta-navy text-white px-5 py-2.5 text-xs font-semibold transition-colors duration-150 flex items-center gap-2 rounded-lg active:scale-[0.98] hover:bg-vanta-navy/90"
+            style={{ boxShadow: SHADOW_SM }}
           >
             <Plus size={16} />
             Add Transaction
           </button>
         </div>
 
-        <div className="bg-white border border-vanta-border rounded-2xl overflow-hidden">
-          {/* Header info block */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-3 px-6 py-5 border-b border-vanta-border text-xs">
-            <div>
-              <div className="text-vanta-gray mb-0.5">Company Name</div>
-              <div className="text-vanta-black font-medium">Vanta Books</div>
+        <div
+          className="bg-white border border-vanta-border rounded-2xl overflow-hidden"
+          style={{ boxShadow: SHADOW_SM }}
+        >
+          {/*
+            Account header. Previously a 4-column grid of five equal-weight
+            label/value pairs on a gradient wash — which orphaned the fifth
+            cell and gave the opening balance no more prominence than the
+            currency code. Reworked on the Stripe Dashboard account-header
+            pattern: the figure that matters is set apart on the right at
+            display scale, and the descriptive facts collapse into a single
+            inline metadata line, since none of them individually deserves
+            its own column.
+          */}
+          <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 px-6 py-5 border-b border-vanta-border">
+            <div className="min-w-0">
+              <div className="text-[15px] font-serif text-vanta-black">Vanta Books</div>
+              <div className="mt-1 text-[12px] text-vanta-gray flex flex-wrap items-center gap-x-1.5">
+                <span>Operating Account</span>
+                <span aria-hidden="true">·</span>
+                <span>ZAR</span>
+                <span aria-hidden="true">·</span>
+                <span>
+                  Fiscal year{' '}
+                  <span className="font-mono tabular-nums">{new Date().getFullYear()}</span>
+                </span>
+              </div>
             </div>
-            <div>
-              <div className="text-vanta-gray mb-0.5">Fiscal Year</div>
-              <div className="text-vanta-black font-medium">{new Date().getFullYear()}</div>
-            </div>
-            <div>
-              <div className="text-vanta-gray mb-0.5">Currency</div>
-              <div className="text-vanta-black font-medium">ZAR</div>
-            </div>
-            <div>
-              <div className="text-vanta-gray mb-0.5">Account Type</div>
-              <div className="text-vanta-black font-medium">Operating Account</div>
-            </div>
-            <div>
-              <div className="text-vanta-gray mb-0.5">Opening Balance</div>
-              <div className="text-vanta-black font-mono font-semibold">R{fmt(OPENING_BALANCE)}</div>
+
+            <div className="shrink-0">
+              <div className="text-[11px] uppercase tracking-[0.08em] text-vanta-gray font-medium">
+                Opening balance
+              </div>
+              <div className="mt-1 text-[20px] leading-none font-mono font-semibold tabular-nums text-vanta-black">
+                R{fmt(OPENING_BALANCE)}
+              </div>
             </div>
           </div>
 
@@ -204,66 +293,64 @@ export default function LedgerPage() {
             <div className="text-center py-20 text-vanta-gray text-sm">No transactions match your search.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-vanta-sidebar text-vanta-gray uppercase tracking-wider text-[10px]">
-                    <th className="text-left font-semibold px-4 py-3">Month</th>
-                    <th className="text-left font-semibold px-4 py-3">Date</th>
-                    <th className="text-left font-semibold px-4 py-3">Account Name</th>
-                    <th className="text-left font-semibold px-4 py-3">Category</th>
-                    <th className="text-left font-semibold px-4 py-3">Description</th>
-                    <th className="text-right font-semibold px-4 py-3">Debit</th>
-                    <th className="text-right font-semibold px-4 py-3">Credit</th>
-                    <th className="text-right font-semibold px-4 py-3">Running Balance</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-vanta-border/60">
-                  {ledgerRows.map((row) => (
+              <Table className="text-xs">
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id} className="bg-vanta-sidebar text-vanta-gray uppercase tracking-wider text-[10px] hover:bg-vanta-sidebar">
+                      {headerGroup.headers.map((header) => {
+                        const isNumeric = ['debit', 'credit', 'runningBalance'].includes(header.column.id);
+                        return (
+                          <TableHead
+                            key={header.id}
+                            className={cn('font-semibold px-4 py-3 h-auto', isNumeric ? 'text-right' : 'text-left')}
+                          >
+                            <button
+                              onClick={header.column.getToggleSortingHandler()}
+                              className={cn(
+                                'inline-flex items-center gap-1 hover:text-vanta-black transition-colors',
+                                isNumeric && 'flex-row-reverse',
+                              )}
+                            >
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                              {header.column.getIsSorted() && <ArrowUpDown size={10} />}
+                            </button>
+                          </TableHead>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody className="divide-y divide-vanta-border/60">
+                  {table.getRowModel().rows.map((row) => (
                     <motion.tr
-                      key={row.tx.id}
+                      key={row.id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      onClick={() => setSelectedTx(row.tx)}
+                      onClick={() => setSelectedTx(row.original.tx)}
                       className={cn(
-                        'hover:bg-vanta-sidebar transition-colors cursor-pointer',
-                        row.tx.needs_review && 'border-l-2 border-l-vanta-black',
+                        'border-b hover:bg-vanta-sidebar transition-colors cursor-pointer',
+                        row.original.tx.needs_review && 'border-l-2 border-l-vanta-black',
                       )}
                     >
-                      <td className="px-4 py-3 text-vanta-gray">{row.month}</td>
-                      <td className="px-4 py-3 text-vanta-gray font-mono">{row.date}</td>
-                      <td className="px-4 py-3 text-vanta-black font-medium">
-                        {row.tx.description || row.tx.raw_input || '—'}
-                      </td>
-                      <td className="px-4 py-3 text-vanta-gray">
-                        {row.tx.category}
-                        {row.tx.needs_review && (
-                          <AlertTriangle size={12} className="inline-block ml-1.5 -mt-0.5 text-vanta-black" />
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-vanta-gray">{row.accountType}</td>
-                      <td className="px-4 py-3 text-right font-mono text-vanta-black">
-                        {row.debit > 0 ? `R${fmt(row.debit)}` : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-vanta-black">
-                        {row.credit > 0 ? `R${fmt(row.credit)}` : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono font-semibold text-vanta-black">
-                        R{fmt(row.runningBalance)}
-                      </td>
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id} className="px-4 py-3 whitespace-normal">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
                     </motion.tr>
                   ))}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-vanta-sidebar font-semibold">
-                    <td colSpan={5} className="px-4 py-3 text-right text-vanta-gray uppercase tracking-wider text-[10px]">
+                </TableBody>
+                <TableFooter className="bg-vanta-sidebar font-semibold">
+                  <TableRow className="hover:bg-vanta-sidebar">
+                    <TableCell colSpan={5} className="px-4 py-3 text-right text-vanta-gray uppercase tracking-wider text-[10px]">
                       Totals
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(totalDebit)}</td>
-                    <td className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(totalCredit)}</td>
-                    <td className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(endingBalance)}</td>
-                  </tr>
-                </tfoot>
-              </table>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(totalDebit)}</TableCell>
+                    <TableCell className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(totalCredit)}</TableCell>
+                    <TableCell className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(endingBalance)}</TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
             </div>
           )}
         </div>

@@ -5,11 +5,10 @@ import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { getAnonId } from '../lib/anonId';
 import { cn } from '../lib/utils';
-import { SHADOW_MD } from '../lib/surfaces';
+import { SHADOW_MD, SHADOW_SM } from '../lib/surfaces';
 import type { AppShellContext } from '../layouts/AppLayout';
 import { useTransactions } from '../hooks/useTransactions';
-import { MetricStrip } from '../components/dashboard/MetricStrip';
-import { BusinessTrendChart } from '../components/dashboard/BusinessTrendChart';
+import { LedgerSummary } from '../components/dashboard/LedgerSummary';
 import { ActivityFeed } from '../components/dashboard/ActivityFeed';
 import { QuickActions } from '../components/dashboard/QuickActions';
 import TransactionDetailModal, { Transaction } from '../components/TransactionDetailModal';
@@ -204,15 +203,14 @@ export default function ChatPage() {
 
   /** Supplementary business context beside the composer — never the hero. */
   const dashboardRail = (
-    <div className="w-full lg:w-80 shrink-0 space-y-4">
+    <div className="w-full lg:w-72 shrink-0 space-y-3">
       {dashboardError && (
-        <div role="alert" className="flex items-center gap-2 text-xs text-vanta-black px-1">
-          <AlertTriangle size={13} className="shrink-0" />
-          Couldn't load transactions: {dashboardError}
+        <div role="alert" className="flex items-start gap-2 text-[12px] text-vanta-danger px-1 leading-snug">
+          <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+          <span>Couldn't load transactions: {dashboardError}</span>
         </div>
       )}
-      <MetricStrip transactions={transactions} isLoading={dashboardLoading} />
-      <BusinessTrendChart transactions={transactions} isLoading={dashboardLoading} />
+      <LedgerSummary transactions={transactions} isLoading={dashboardLoading} />
       <ActivityFeed transactions={transactions} isLoading={dashboardLoading} onSelect={setSelectedTx} />
     </div>
   );
@@ -324,10 +322,10 @@ export default function ChatPage() {
               >
                 <defs>
                   <linearGradient id={`ringGrad${li}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#1C1C1C" stopOpacity="0.9" />
-                    <stop offset="45%" stopColor="#1E5AA8" stopOpacity="0.65" />
-                    <stop offset="75%" stopColor="#1E5AA8" stopOpacity="0.35" />
-                    <stop offset="100%" stopColor="#1E5AA8" stopOpacity="0.08" />
+                    <stop offset="0%" stopColor="#111827" stopOpacity="0.9" />
+                    <stop offset="45%" stopColor="#2563EB" stopOpacity="0.65" />
+                    <stop offset="75%" stopColor="#2563EB" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="#2563EB" stopOpacity="0.08" />
                   </linearGradient>
                 </defs>
                 {layer.delayRings.map((rot, ri) => (
@@ -401,7 +399,7 @@ export default function ChatPage() {
               className={cn('flex flex-col', msg.role === 'user' ? 'items-end' : 'items-start')}
             >
               {msg.role === 'user' && (
-                <div className="text-white p-4 rounded-2xl rounded-br-md max-w-xl shadow-[0_6px_18px_-8px_rgba(30,90,168,0.5)]" style={{ background: 'linear-gradient(155deg, #2E6EBF 0%, #1E5AA8 60%, #153F78 100%)' }}>
+                <div className="text-white p-4 rounded-2xl rounded-br-md max-w-xl bg-vanta-navy" style={{ boxShadow: SHADOW_SM }}>
                   {msg.content}
                 </div>
               )}
@@ -419,7 +417,7 @@ export default function ChatPage() {
 
               {msg.role === 'assistant' && (
                 <div className="flex gap-4 max-w-2xl w-full">
-                  <div className="w-9 h-9 rounded-lg text-white shrink-0 flex items-center justify-center font-serif font-semibold text-sm shadow-[0_4px_12px_-4px_rgba(30,90,168,0.6)]" style={{ background: 'linear-gradient(155deg, #2E6EBF 0%, #1E5AA8 60%, #153F78 100%)' }}>
+                  <div className="w-9 h-9 rounded-lg text-white shrink-0 flex items-center justify-center font-serif font-semibold text-sm bg-vanta-navy" style={{ boxShadow: SHADOW_SM }}>
                     V
                   </div>
                   <div className="flex-1 bg-white p-5 border border-vanta-border rounded-2xl rounded-tl-md">
@@ -433,7 +431,7 @@ export default function ChatPage() {
 
           {isLoading && (
             <div className="flex gap-4 max-w-2xl">
-              <div className="w-9 h-9 rounded-lg text-white shrink-0 flex items-center justify-center animate-pulse shadow-[0_4px_12px_-4px_rgba(30,90,168,0.6)]" style={{ background: 'linear-gradient(155deg, #2E6EBF 0%, #1E5AA8 60%, #153F78 100%)' }}>
+              <div className="w-9 h-9 rounded-lg text-white shrink-0 flex items-center justify-center animate-pulse bg-vanta-navy" style={{ boxShadow: SHADOW_SM }}>
                 <RefreshCw size={15} className="animate-spin" />
               </div>
               <div className="flex-1 bg-white p-4 border border-vanta-border rounded-2xl rounded-tl-md text-vanta-gray text-sm italic flex items-center">
