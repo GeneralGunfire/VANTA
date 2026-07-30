@@ -10,6 +10,8 @@ import AuthPage from './pages/AuthPage';
 import AppLayout from './layouts/AppLayout';
 import ChatPage from './pages/ChatPage';
 import LedgerPage from './pages/LedgerPage';
+import DebtorsPage from './pages/DebtorsPage';
+import { Toaster } from './components/ui/sonner';
 
 export default function App() {
   return (
@@ -23,10 +25,12 @@ export default function App() {
           <Route index element={<Navigate to="/app/chat" replace />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="ledger" element={<LedgerPage />} />
+          <Route path="debtors" element={<DebtorsPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <Toaster position="bottom-right" />
     </BrowserRouter>
   );
 }

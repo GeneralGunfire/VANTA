@@ -22,7 +22,10 @@ const TRANSACTION_SHAPE = `{
   "direction": "in" | "out",
   "category": one of ${JSON.stringify(CATEGORIES)},
   "description": string (short, plain English),
-  "confidence": number between 0 and 1
+  "confidence": number between 0 and 1,
+  "is_debt": boolean,
+  "party_name": string or null,
+  "debt_direction": "owed_to_business" | "owed_by_business" | null
 }`;
 
 const SYSTEM_PROMPT = `You are a bookkeeping assistant for small, informal South African businesses. You will be given a short piece of raw text describing one or more business transactions (this may be free-text typed by the user, or a row extracted from a spreadsheet).
@@ -55,6 +58,17 @@ Rules (apply to every individual transaction object, whether standalone or insid
   - "Paid R1200 rent for the shop this month" (clear amount, clear "out", clear Rent context)
 - Example of MULTIPLE transactions in one input, returned as an array:
   - "Sold bread R400 cash. Bought flour R180. Paid taxi R60." → three objects, one per sentence, each scored independently.
+
+Debt detection (applies in addition to the normal transaction fields above):
+- Every transaction object must also include "is_debt", "party_name", and "debt_direction".
+- Set "is_debt": true ONLY when the input explicitly describes an amount owed by or to a named person/party — language like "owes me", "I owe", "on credit", "still owes", "IOU". Otherwise set "is_debt": false and leave "party_name"/"debt_direction" as null.
+- When is_debt is true:
+  - "party_name": the person or business name involved (e.g. "Thabo"). If no name is given, set is_debt back to false — a debt without an identifiable party is not usable.
+  - "debt_direction": "owed_to_business" when someone else owes the business money (e.g. "Thabo owes me R200 for bread" — Thabo owes the business). "owed_by_business" when the business owes someone else (e.g. "I owe Sipho R500" — the business owes Sipho).
+- Examples:
+  - "Thabo owes me R200 for bread" → is_debt: true, party_name: "Thabo", debt_direction: "owed_to_business".
+  - "I owe Sipho R500" → is_debt: true, party_name: "Sipho", debt_direction: "owed_by_business".
+  - "Sold bread R400 cash" → is_debt: false, party_name: null, debt_direction: null (a normal cash sale, no debt).
 - Never return anything except the JSON object or JSON array.`;
 
 function stripCodeFences(text: string): string {
@@ -118,6 +132,12 @@ Deno.serve(async (req: Request) => {
       anon_id: string;
     }>;
 
+    // Part 1: debt-detection metadata, parallel array to rowsToInsert
+    // (same index), populated only for the LLM-parsed path — the
+    // deterministic rules-layer match below never produces a debt (rules
+    // only confirm category/direction, never party names).
+    let debtMeta: Array<{ is_debt: boolean; party_name: string | null; debt_direction: string | null }> = [];
+
     let estimatedTokens = 0;
     let estimatedCostUsd = 0;
 
@@ -178,6 +198,9 @@ Deno.serve(async (req: Request) => {
         category: string | null;
         description: string | null;
         confidence: number;
+        is_debt?: boolean;
+        party_name?: string | null;
+        debt_direction?: string | null;
       }
 
       // The model returns either a single transaction object or a JSON
@@ -227,6 +250,21 @@ Deno.serve(async (req: Request) => {
           anon_id: anonId,
         };
       });
+
+      // This is inherently fuzzy NL classification — it relies entirely
+      // on the LLM correctly recognizing "owes"/"I owe" language, will
+      // likely miss indirect phrasing, does not dedup or match against
+      // existing debtor names, and has no concept of partial payments.
+      // See final report for full limitations.
+      debtMeta = rawEntries.map((parsed) => {
+        const debt_direction =
+          parsed.debt_direction === "owed_to_business" || parsed.debt_direction === "owed_by_business"
+            ? parsed.debt_direction
+            : null;
+        const party_name = typeof parsed.party_name === "string" && parsed.party_name.trim() ? parsed.party_name.trim() : null;
+        const is_debt = Boolean(parsed.is_debt) && party_name !== null && debt_direction !== null;
+        return { is_debt, party_name, debt_direction };
+      });
     }
 
     const { data, error } = await supabase.from("transactions").insert(rowsToInsert).select();
@@ -245,6 +283,32 @@ Deno.serve(async (req: Request) => {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Part 1: for any transaction the model flagged as a debt (index-
+    // aligned with rowsToInsert/data), insert a corresponding `debts` row
+    // linked back via transaction_id. Best-effort — a failure here does
+    // not roll back or fail the transaction insert above; it's logged
+    // and swallowed so debt detection never blocks normal ledger entry.
+    if (Array.isArray(data) && debtMeta.length === data.length) {
+      const debtRows = data
+        .map((row: any, i: number) => ({ row, meta: debtMeta[i] }))
+        .filter(({ meta }) => meta?.is_debt)
+        .map(({ row, meta }) => ({
+          party_name: meta.party_name,
+          direction: meta.debt_direction,
+          amount: row.amount,
+          description: row.description,
+          status: "outstanding",
+          transaction_id: row.id,
+        }));
+
+      if (debtRows.length > 0) {
+        const { error: debtError } = await supabase.from("debts").insert(debtRows);
+        if (debtError) {
+          console.error("Failed to insert debt row(s):", debtError.message);
+        }
+      }
     }
 
     // `transactions` is always an array, even for the single-transaction
