@@ -1,8 +1,20 @@
 import type { Transaction } from '../components/TransactionDetailModal';
 import type { Debt } from '../hooks/useDebts';
 
+/** Minimum confirmed transactions and days of recorded history before a forecast is shown as a confident-looking number. */
+const MIN_TRANSACTIONS_FOR_FORECAST = 10;
+const MIN_HISTORY_DAYS_FOR_FORECAST = 14;
+
 export interface CashflowForecast {
-  /** True once at least one confirmed transaction exists — an empty/new business has no basis for a forecast. */
+  /**
+   * True once there's enough real history to show a forecast that reads
+   * as reliable — both a minimum transaction count AND a minimum span of
+   * days, not just "at least one row exists." Found during live testing:
+   * the real (non-test) data in this project is 4 transactions across
+   * ~11 minutes on a single day — exactly the kind of thin history that
+   * would previously have produced a confident-sounding number off
+   * almost nothing.
+   */
   hasEnoughData: boolean;
   windowDays: number;
   avgDailyIncome: number;
@@ -32,6 +44,10 @@ export function computeCashflowForecast(transactions: Transaction[], debts: Debt
   const windowStart = now - windowDays * 24 * 60 * 60 * 1000;
 
   const recent = transactions.filter((t) => !t.needs_review && new Date(t.created_at).getTime() >= windowStart);
+
+  const oldestRecentMs = recent.length > 0 ? Math.min(...recent.map((t) => new Date(t.created_at).getTime())) : now;
+  const historySpanDays = (now - oldestRecentMs) / (1000 * 60 * 60 * 24);
+  const hasEnoughData = recent.length >= MIN_TRANSACTIONS_FOR_FORECAST && historySpanDays >= MIN_HISTORY_DAYS_FOR_FORECAST;
 
   const totalIn = recent.filter((t) => t.direction === 'in').reduce((s, t) => s + (t.amount ?? 0), 0);
   const totalOut = recent.filter((t) => t.direction === 'out').reduce((s, t) => s + (t.amount ?? 0), 0);
@@ -80,7 +96,7 @@ export function computeCashflowForecast(transactions: Transaction[], debts: Debt
   }
 
   return {
-    hasEnoughData: recent.length > 0,
+    hasEnoughData,
     windowDays,
     avgDailyIncome,
     avgDailyExpense,

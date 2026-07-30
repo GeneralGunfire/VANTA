@@ -40,8 +40,8 @@ export default function ForecastPage() {
           </div>
         ) : !forecast.hasEnoughData ? (
           <div className="text-center py-20 text-vanta-gray text-sm px-6 leading-relaxed border border-vanta-border rounded-2xl bg-white">
-            Not enough recorded history yet to estimate a forecast — this needs at least a few confirmed transactions from the
-            last {forecast.windowDays} days. Keep recording in chat and check back soon.
+            Not enough recorded history yet for a reliable forecast — a confident-looking number off just a few transactions
+            would be misleading. Keep recording in chat for at least a couple of weeks and check back soon.
           </div>
         ) : (
           <div className="space-y-6">
