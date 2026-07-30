@@ -30,13 +30,7 @@ const NAV_GROUPS: NavGroup[] = [
       { name: 'Debtors & Creditors', path: '/app/debtors', icon: Users },
       { name: 'Tax Calendar', path: '/app/tax-calendar', icon: CalendarClock },
       { name: 'Inventory', path: '/app/inventory', icon: Package },
-    ],
-  },
-  {
-    label: 'Coming soon',
-    disabled: true,
-    items: [
-      { name: 'Document Vault', path: '', icon: FolderLock },
+      { name: 'Document Vault', path: '/app/documents', icon: FolderLock },
     ],
   },
 ];
