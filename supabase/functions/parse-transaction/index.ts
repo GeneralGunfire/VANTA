@@ -323,7 +323,17 @@ Deno.serve(async (req: Request) => {
       const ledgerEntries = nonInvoiceEntries.filter((parsed) => !isPureDebtEntry(parsed));
 
       rowsToInsert = ledgerEntries.map((parsed) => {
-        const amount = typeof parsed.amount === "number" ? parsed.amount : null;
+        // Found during live Excel-upload testing: input rows with a
+        // negative number in an "amount" column (e.g. "-180" for an
+        // expense) caused the model to echo that sign straight into
+        // amount while ALSO correctly setting direction: "out" — a
+        // spreadsheet convention (negative = expense) leaking into a
+        // field that every downstream sum (forecast, business record,
+        // generate-summary) treats as an unsigned magnitude, with sign
+        // carried entirely by direction. A negative "out" amount silently
+        // flips its contribution to those sums. Normalized to a magnitude
+        // here, once, at the single point every insert path goes through.
+        const amount = typeof parsed.amount === "number" ? Math.abs(parsed.amount) : null;
         const direction = parsed.direction === "in" || parsed.direction === "out" ? parsed.direction : null;
         const category = CATEGORIES.includes(parsed.category ?? "") ? parsed.category : "Other";
         const description = typeof parsed.description === "string" ? parsed.description : null;
@@ -366,7 +376,10 @@ Deno.serve(async (req: Request) => {
         .map((parsed) => ({
           party_name: (parsed.party_name as string).trim(),
           direction: parsed.debt_direction as "owed_to_business" | "owed_by_business",
-          amount: parsed.amount as number,
+          // Same normalization as the transactions amount above — a debt
+          // owed is a magnitude, direction (already a separate field)
+          // carries the sign of who owes whom, never the amount itself.
+          amount: Math.abs(parsed.amount as number),
           description: typeof parsed.description === "string" ? parsed.description : null,
         }));
     }
