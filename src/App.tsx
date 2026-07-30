@@ -18,6 +18,7 @@ import ForecastPage from './pages/ForecastPage';
 import InvoicesPage from './pages/InvoicesPage';
 import BusinessRecordPage from './pages/BusinessRecordPage';
 import SuppliersPage from './pages/SuppliersPage';
+import TimelinePage from './pages/TimelinePage';
 import { Toaster } from './components/ui/sonner';
 
 export default function App() {
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="invoices" element={<InvoicesPage />} />
           <Route path="business-record" element={<BusinessRecordPage />} />
           <Route path="suppliers" element={<SuppliersPage />} />
+          <Route path="timeline" element={<TimelinePage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

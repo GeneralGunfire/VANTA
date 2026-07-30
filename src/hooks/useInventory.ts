@@ -11,6 +11,7 @@ export interface InventoryItem {
   sale_price: number | null;
   reorder_threshold: number | null;
   updated_at: string;
+  created_at: string;
 }
 
 interface UseInventoryResult {
