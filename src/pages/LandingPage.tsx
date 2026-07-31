@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, PlayCircle, ShieldCheck, FileText, AlertTriangle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
+import logoMark from '../assets/vanta-logo-mark.jpeg';
+import heroDesktop from '../assets/vanta-hero-desktop.jpeg';
+import heroMobile from '../assets/vanta-hero-mobile.jpeg';
 
 const fadeUp = {
   initial: { opacity: 0, y: 28 },
@@ -16,6 +19,79 @@ const NAV_LINKS = [
   { id: 'demo', label: 'See it in action' },
   { id: 'faq', label: 'FAQ' },
 ];
+
+/** Hero copy, set into the open space of the brand render — shared between the mobile and desktop crops. */
+function HeroCopy() {
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 backdrop-blur-sm px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-white mb-[clamp(1rem,3vh,1.75rem)]"
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-white" />
+        Bookkeeping, in plain language
+      </motion.div>
+
+      <motion.h1
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.55, delay: 0.05 }}
+        className="font-serif font-bold tracking-tight leading-[1.08] text-[clamp(2rem,5vw+0.5rem,3.2rem)] text-balance text-white"
+      >
+        Every sale. Every expense.
+        <br />
+        <span className="text-[#8FC0FF]">One conversation.</span>
+      </motion.h1>
+
+      <motion.p
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.15 }}
+        className="text-white/75 text-[clamp(0.9rem,0.5vw+0.8rem,1.05rem)] leading-relaxed max-w-110 mt-[clamp(0.9rem,2vh,1.5rem)] font-normal text-balance"
+      >
+        Tell Vanta what happened in plain language. It keeps clean records and tells you
+        exactly how business is going — no spreadsheets, no dashboards, no jargon.
+      </motion.p>
+
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.22 }}
+        className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-[clamp(1.25rem,2.8vh,2rem)]"
+      >
+        <Link
+          to="/auth?mode=create"
+          className="group relative inline-flex items-center gap-2 bg-white text-vanta-navy px-7 py-3.5 text-sm font-semibold rounded-full hover:bg-white/90 transition-all active:scale-[0.98]"
+        >
+          Get started
+          <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+        </Link>
+        <a
+          href="#demo"
+          className="inline-flex items-center gap-2 border border-white/30 bg-white/10 backdrop-blur-sm px-7 py-3.5 text-sm font-semibold text-white rounded-full hover:bg-white/15 transition-all active:scale-[0.98]"
+        >
+          <PlayCircle size={16} />
+          See it in action
+        </a>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-2 mt-[clamp(1.1rem,2.4vh,1.75rem)] text-xs font-semibold text-white/70"
+      >
+        <span className="inline-flex items-center gap-1.5"><ShieldCheck size={13} className="text-[#8FC0FF]" /> No spreadsheets</span>
+        <span className="w-1 h-1 rounded-full bg-white/30" />
+        <span className="inline-flex items-center gap-1.5"><ShieldCheck size={13} className="text-[#8FC0FF]" /> No setup fees</span>
+        <span className="w-1 h-1 rounded-full bg-white/30" />
+        <span className="inline-flex items-center gap-1.5"><ShieldCheck size={13} className="text-[#8FC0FF]" /> Built for South Africa</span>
+      </motion.div>
+    </>
+  );
+}
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -56,9 +132,7 @@ export default function LandingPage() {
         <header className="max-w-5xl mx-auto rounded-full border border-vanta-border bg-white/90 backdrop-blur-xl shadow-[0_8px_24px_-12px_rgba(28,28,28,0.12)]">
           <div className="px-4 md:px-6 py-2.5 flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2 pl-1">
-              <span className="w-7 h-7 rounded-full bg-vanta-navy flex items-center justify-center text-white font-serif font-bold text-sm">
-                V
-              </span>
+              <img src={logoMark} alt="Vanta" className="w-7 h-7 rounded-full object-cover" />
               <span className="text-lg font-serif font-bold text-vanta-black tracking-tight">Vanta</span>
             </Link>
 
@@ -92,107 +166,29 @@ export default function LandingPage() {
         </header>
       </div>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden min-h-dvh flex items-center">
-        <div className="relative w-full max-w-3xl mx-auto px-6 md:px-12 pt-24 pb-[clamp(2rem,5vh,4rem)] text-center flex flex-col items-center">
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="inline-flex items-center gap-2 rounded-full border border-vanta-border bg-vanta-sidebar px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-vanta-navy mb-[clamp(1rem,3vh,2.25rem)]"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-vanta-navy" />
-            Bookkeeping, in plain language
-          </motion.div>
+      {/* Hero Section — the brand's own gradient render, text set into its open space */}
+      <section className="relative overflow-hidden min-h-dvh flex items-center text-white">
+        <img
+          src={heroDesktop}
+          alt=""
+          className="hidden md:block absolute inset-0 w-full h-full object-cover"
+        />
+        <img
+          src={heroMobile}
+          alt=""
+          className="md:hidden absolute inset-0 w-full h-full object-cover"
+        />
 
-          <motion.h1
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.05 }}
-            className="font-serif font-bold tracking-tight leading-[1.03] text-[clamp(2.35rem,6.4vw+0.5rem,4.4rem)] text-balance text-vanta-black"
-          >
-            Every sale.
-            <br />
-            Every expense.
-            <br />
-            <span className="relative inline-block text-vanta-navy">
-              One conversation.
-              <svg
-                className="absolute left-0 -bottom-2 w-full h-3"
-                viewBox="0 0 300 12"
-                preserveAspectRatio="none"
-                fill="none"
-              >
-                <path
-                  d="M2 8.5C60 3 130 2 170 5.5C210 9 260 9.5 298 4"
-                  stroke="#1E5AA8"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  opacity="0.35"
-                />
-              </svg>
-            </span>
-          </motion.h1>
+        {/* Mobile: copy sits in the open space beneath the logo lockup */}
+        <div className="md:hidden relative w-full px-6 pt-[38dvh] pb-16 text-center flex flex-col items-center">
+          <HeroCopy />
+        </div>
 
-          <motion.p
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-            className="text-vanta-gray text-[clamp(0.95rem,0.6vw+0.8rem,1.125rem)] leading-relaxed max-w-136 mt-[clamp(1rem,2.4vh,2rem)] font-normal text-balance"
-          >
-            Tell Vanta what happened in plain language. It keeps clean records and tells you
-            exactly how business is going — no spreadsheets, no dashboards, no jargon.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.22 }}
-            className="flex flex-wrap items-center justify-center gap-3 mt-[clamp(1.5rem,3.2vh,2.5rem)]"
-          >
-            <Link
-              to="/auth?mode=create"
-              className="group relative inline-flex items-center gap-2 bg-vanta-navy text-white px-7 py-3.5 text-sm font-semibold rounded-full hover:bg-vanta-navy-dark transition-all active:scale-[0.98]"
-            >
-              Get started
-              <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
-            </Link>
-            <a
-              href="#demo"
-              className="inline-flex items-center gap-2 border border-vanta-border bg-white px-7 py-3.5 text-sm font-semibold text-vanta-black rounded-full hover:border-vanta-navy/30 transition-all active:scale-[0.98]"
-            >
-              <PlayCircle size={16} />
-              See it in action
-            </a>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-[clamp(1.25rem,2.6vh,2.25rem)] text-xs font-semibold text-vanta-gray"
-          >
-            <span className="inline-flex items-center gap-1.5"><ShieldCheck size={13} className="text-vanta-navy" /> No spreadsheets</span>
-            <span className="w-1 h-1 rounded-full bg-vanta-border" />
-            <span className="inline-flex items-center gap-1.5"><ShieldCheck size={13} className="text-vanta-navy" /> No setup fees</span>
-            <span className="w-1 h-1 rounded-full bg-vanta-border" />
-            <span className="inline-flex items-center gap-1.5"><ShieldCheck size={13} className="text-vanta-navy" /> Built for South Africa</span>
-          </motion.div>
-
-          {/* The proof, as a moment — not a mockup. Plain typography, floating in space. */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="hidden [@media(min-height:44rem)]:flex flex-col sm:flex-row items-center justify-center gap-5 sm:gap-8 mt-[clamp(2rem,6vh,5rem)]"
-          >
-            <span className="font-mono text-sm text-vanta-gray italic">"sold 20 loaves R400 cash"</span>
-            <ArrowRight size={18} className="text-vanta-navy" />
-            <span className="flex items-baseline gap-2">
-              <span className="text-sm font-bold text-vanta-black">Sales</span>
-              <span className="font-mono text-lg font-bold text-vanta-navy">+R400.00</span>
-            </span>
-          </motion.div>
+        {/* Desktop: copy sits to the right of the logo, which renders in the image's left-center */}
+        <div className="hidden md:flex relative w-full max-w-6xl mx-auto px-12 lg:px-16 items-center">
+          <div className="ml-auto w-full max-w-lg text-left">
+            <HeroCopy />
+          </div>
         </div>
       </section>
 

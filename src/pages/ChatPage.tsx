@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
-import { Upload, AlertTriangle, ArrowUpRight, ArrowDownLeft, RefreshCw, Send } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Upload, AlertTriangle, ArrowUpRight, ArrowDownLeft, RefreshCw, Send, Banknote, Receipt, MessageCircleQuestion, RefreshCcw } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
-import { cn } from '../lib/utils';
+import { cn, getBusinessName } from '../lib/utils';
 import type { AppShellContext } from '../layouts/AppLayout';
 
 interface ParsedTransaction {
@@ -33,11 +33,16 @@ const WELCOME: Message = {
   timestamp: '',
 };
 
-/** Real Vanta usage — not generic finance-app suggestions. */
-const EXAMPLE_PROMPTS = [
-  'sold 20 loaves, R400 cash',
-  'bought flour for R180',
-  "how's business this week?",
+/** Real Vanta usage — not generic finance-app suggestions. "Refresh" cycles this pool four at a time. */
+const EXAMPLE_PROMPTS: { icon: typeof Banknote; label: string; prompt: string }[] = [
+  { icon: Banknote, label: 'Log a sale', prompt: 'sold 20 loaves, R400 cash' },
+  { icon: Receipt, label: 'Log an expense', prompt: 'bought flour for R180' },
+  { icon: MessageCircleQuestion, label: "Ask how you're doing", prompt: "how's business this week?" },
+  { icon: Banknote, label: 'Log a sale', prompt: 'sold 3 haircuts for R450 total' },
+  { icon: Receipt, label: 'Log an expense', prompt: 'paid R650 for airtime and data' },
+  { icon: MessageCircleQuestion, label: 'Ask about spending', prompt: 'how much did I spend on stock this month?' },
+  { icon: Banknote, label: 'Log a sale', prompt: 'sold airtime R120 cash' },
+  { icon: Receipt, label: 'Log an expense', prompt: 'paid R2000 rent for the shop' },
 ];
 
 export default function ChatPage() {
@@ -47,10 +52,18 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const composerRef = useRef<HTMLInputElement>(null);
+  const businessName = getBusinessName();
 
   // Collapses the sidebar while the composer is active. Blurring restores it,
   // so the nav is always one click (or Escape) away.
   const { setComposerFocused } = useOutletContext<AppShellContext>();
+
+  // "Refresh prompts" pages through the example pool four at a time, wrapping around.
+  const [promptPage, setPromptPage] = useState(0);
+  const visiblePrompts = useMemo(() => {
+    const start = (promptPage * 4) % EXAMPLE_PROMPTS.length;
+    return Array.from({ length: 4 }, (_, i) => EXAMPLE_PROMPTS[(start + i) % EXAMPLE_PROMPTS.length]);
+  }, [promptPage]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -74,9 +87,9 @@ export default function ChatPage() {
   const location = useLocation();
   const navigate = useNavigate();
   useEffect(() => {
-    const prefill = (location.state as { prefill?: string } | null)?.prefill;
-    if (!prefill) return;
-    setInput(prefill);
+    const state = location.state as { prefill?: string; focusComposer?: boolean } | null;
+    if (!state?.prefill && !state?.focusComposer) return;
+    if (state.prefill) setInput(state.prefill);
     composerRef.current?.focus();
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate]);
@@ -196,6 +209,7 @@ export default function ChatPage() {
   );
 
   const isEmpty = messages.length === 1 && messages[0].id === 'welcome';
+  const MAX_INPUT_LENGTH = 500;
 
   const inputBar = (
     <form onSubmit={handleSubmit} className="group relative">
@@ -211,34 +225,41 @@ export default function ChatPage() {
         }}
       />
 
-      <div className="relative rounded-2xl bg-white border border-vanta-border shadow-[0_16px_40px_-20px_rgba(28,28,28,0.25)] group-focus-within:border-vanta-navy/50 group-focus-within:shadow-[0_20px_48px_-20px_rgba(30,90,168,0.25)] transition-all">
+      <div className="rounded-2xl bg-white border border-vanta-border shadow-[0_16px_40px_-20px_rgba(28,28,28,0.25)] group-focus-within:border-vanta-navy/50 group-focus-within:shadow-[0_20px_48px_-20px_rgba(30,90,168,0.25)] transition-all overflow-hidden">
         <input
           ref={composerRef}
           type="text"
           value={input}
+          maxLength={MAX_INPUT_LENGTH}
           onChange={(e) => setInput(e.target.value)}
           onFocus={() => setComposerFocused(true)}
           onBlur={() => setComposerFocused(false)}
           placeholder="Tell me what happened…"
-          className="w-full bg-transparent pt-4.5 pb-4.5 pl-4.5 pr-24 text-vanta-black placeholder-vanta-gray focus:outline-none text-[15px]"
+          className="w-full bg-transparent pt-4.5 pb-3 px-4.5 text-vanta-black placeholder-vanta-gray focus:outline-none text-[15px]"
         />
-        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+        <div className="flex items-center justify-between px-3 pb-2.5 pt-1">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             title="Attach an Excel or CSV file"
-            className="p-2 text-vanta-gray hover:text-vanta-black transition-colors rounded-lg hover:bg-black/5"
+            className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium text-vanta-gray hover:text-vanta-black transition-colors rounded-lg hover:bg-black/5"
           >
-            <Upload size={16} />
+            <Upload size={14} />
+            <span className="hidden sm:inline">Attach file</span>
           </button>
-          <button
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            title="Send"
-            className="w-8 h-8 rounded-full bg-vanta-navy text-white flex items-center justify-center hover:bg-vanta-navy-dark transition-all disabled:opacity-30 active:scale-[0.95]"
-          >
-            <Send size={14} />
-          </button>
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-mono text-vanta-gray/70 tabular-nums">
+              {input.length}/{MAX_INPUT_LENGTH}
+            </span>
+            <button
+              type="submit"
+              disabled={!input.trim() || isLoading}
+              title="Send"
+              className="w-8 h-8 rounded-full bg-vanta-navy text-white flex items-center justify-center hover:bg-vanta-navy-dark transition-all disabled:opacity-30 active:scale-[0.95]"
+            >
+              <Send size={14} />
+            </button>
+          </div>
         </div>
       </div>
     </form>
@@ -248,99 +269,91 @@ export default function ChatPage() {
     return (
       <div className="flex-1 flex flex-col h-full relative overflow-y-auto overflow-x-hidden bg-white">
         <div className="relative flex-1 flex flex-col items-center justify-center px-6 py-16 min-h-full">
-          {/* Woven wireframe rings — decorative, tuned to the two brand colors (near-black + accent blue) so it reads as Vanta, not generic AI-demo flavor */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1, y: [0, -10, 0] }}
-            transition={{
-              opacity: { duration: 0.7 },
-              scale: { duration: 0.7 },
-              y: { duration: 6, repeat: Infinity, ease: 'easeInOut' },
-            }}
-            className="relative w-64 h-64 mb-4"
-          >
-            {/* Soft core shadow, grounds the orb against the white canvas */}
+          <div className="w-full max-w-2xl">
+            <motion.h1
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="text-2xl md:text-[2rem] font-sans font-extrabold tracking-tight leading-tight"
+            >
+              {businessName ? (
+                <>
+                  <span className="text-vanta-black">Hi there, </span>
+                  <span className="bg-clip-text text-transparent bg-linear-to-r from-vanta-navy to-[#5B9BE0]">{businessName}</span>
+                </>
+              ) : (
+                <span className="text-vanta-black">Hi there</span>
+              )}
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.04 }}
+              className="text-2xl md:text-[2rem] font-sans font-extrabold tracking-tight leading-tight mb-3"
+            >
+              <span className="text-vanta-black">What </span>
+              <span className="bg-clip-text text-transparent bg-linear-to-r from-vanta-navy to-[#5B9BE0]">would you like to log?</span>
+            </motion.p>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.08 }}
+              className="text-sm text-vanta-gray mb-6"
+            >
+              Use one of the prompts below, or describe it your own way to begin.
+            </motion.p>
+
             <motion.div
-              animate={{ opacity: [0.25, 0.4, 0.25], scale: [0.9, 1.05, 0.9] }}
-              transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute inset-8 rounded-full blur-3xl"
-              style={{ background: 'radial-gradient(circle, rgba(30,90,168,0.22) 0%, rgba(28,28,28,0.08) 55%, transparent 75%)' }}
-            />
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+            >
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={promptPage}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+                >
+                  {visiblePrompts.map((p, i) => (
+                    <button
+                      key={`${promptPage}-${i}`}
+                      type="button"
+                      onClick={() => handleQuickPrompt(p.prompt)}
+                      className="text-left bg-white border border-vanta-border rounded-2xl p-4 hover:border-vanta-navy/30 hover:-translate-y-0.5 transition-all"
+                    >
+                      <div className="text-[13px] font-medium text-vanta-black leading-snug mb-6 line-clamp-2">
+                        "{p.prompt}"
+                      </div>
+                      <div className="w-7 h-7 rounded-full bg-[#E8F0FA] flex items-center justify-center text-vanta-navy">
+                        <p.icon size={14} />
+                      </div>
+                    </button>
+                  ))}
+                </motion.div>
+              </AnimatePresence>
 
-            {/* Four counter-rotating ring layers, near-black fading to accent blue */}
-            {[
-              { dur: 16, dir: 360, tilt: 0, delayRings: [0, 30, 60] },
-              { dur: 22, dir: -360, tilt: 45, delayRings: [15, 50, 80] },
-              { dur: 28, dir: 360, tilt: 90, delayRings: [10, 40, 70] },
-              { dur: 34, dir: -360, tilt: 135, delayRings: [5, 55, 95] },
-            ].map((layer, li) => (
-              <motion.svg
-                key={li}
-                viewBox="0 0 200 200"
-                className="absolute inset-0 w-full h-full"
-                animate={{ rotate: layer.dir }}
-                transition={{ duration: layer.dur, repeat: Infinity, ease: 'linear' }}
-                style={{ filter: 'drop-shadow(0 3px 8px rgba(28,28,28,0.18))' }}
-              >
-                <defs>
-                  <linearGradient id={`ringGrad${li}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#1C1C1C" stopOpacity="0.9" />
-                    <stop offset="45%" stopColor="#1E5AA8" stopOpacity="0.65" />
-                    <stop offset="75%" stopColor="#1E5AA8" stopOpacity="0.35" />
-                    <stop offset="100%" stopColor="#1E5AA8" stopOpacity="0.08" />
-                  </linearGradient>
-                </defs>
-                {layer.delayRings.map((rot, ri) => (
-                  <ellipse
-                    key={ri}
-                    cx="100"
-                    cy="100"
-                    rx="82"
-                    ry={32 + ri * 11}
-                    fill="none"
-                    stroke={`url(#ringGrad${li})`}
-                    strokeWidth={ri === 0 ? 2 : 1.1}
-                    transform={`rotate(${layer.tilt + rot} 100 100)`}
-                    opacity={0.9 - ri * 0.18}
-                  />
-                ))}
-              </motion.svg>
-            ))}
-          </motion.div>
-
-          <h1 className="text-3xl md:text-4xl font-serif text-vanta-black text-center mb-3 leading-tight max-w-xl">
-            What happened in your business today?
-          </h1>
-          <p className="text-base text-vanta-gray text-center mb-10">
-            Tell me in plain language — I'll keep the books.
-          </p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="w-full max-w-2xl"
-          >
-            {inputBar}
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.18 }}
-            className="flex flex-wrap items-center justify-center gap-2 max-w-2xl w-full mt-6"
-          >
-            {EXAMPLE_PROMPTS.map((prompt) => (
               <button
-                key={prompt}
                 type="button"
-                onClick={() => handleQuickPrompt(prompt)}
-                className="rounded-full border border-vanta-border bg-white px-4 py-2 font-mono text-xs text-vanta-black transition-colors hover:border-vanta-navy/40 hover:bg-[#E8F0FA]"
+                onClick={() => setPromptPage((n) => n + 1)}
+                className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-vanta-gray hover:text-vanta-navy transition-colors"
               >
-                "{prompt}"
+                <RefreshCcw size={12} />
+                Refresh prompts
               </button>
-            ))}
-          </motion.div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.18 }}
+              className="mt-8"
+            >
+              {inputBar}
+            </motion.div>
+          </div>
         </div>
       </div>
     );
