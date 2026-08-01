@@ -42,7 +42,7 @@ interface LedgerRow {
 const columnHelper = createColumnHelper<LedgerRow>();
 
 export default function LedgerPage() {
-  const { transactions, isLoading, loadError, addTransaction, updateTransaction } = useTransactions();
+  const { transactions, isLoading, loadError, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'in' | 'out' | 'needs_review'>('all');
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
@@ -133,12 +133,19 @@ export default function LedgerPage() {
         id: 'category',
         header: 'Category',
         cell: ({ row }) => (
-          <span className="text-vanta-gray">
-            {row.original.tx.category}
-            {row.original.tx.needs_review && (
-              <AlertTriangle size={12} className="inline-block ml-1.5 -mt-0.5 text-vanta-black" />
+          <div className="flex items-center gap-2">
+            <span className="text-vanta-gray">{row.original.tx.category}</span>
+            {row.original.tx.needs_review ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-vanta-black text-vanta-black text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
+                <AlertTriangle size={10} />
+                Review
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-vanta-success-tint text-vanta-success text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
+                Confirmed
+              </span>
             )}
-          </span>
+          </div>
         ),
       }),
       columnHelper.accessor('accountType', {
@@ -182,7 +189,12 @@ export default function LedgerPage() {
 
   return (
     <div className="relative flex-1 overflow-y-auto pt-12 px-6 md:px-12 lg:px-16 pb-32">
-      <TransactionDetailModal transaction={selectedTx} onClose={() => setSelectedTx(null)} onCorrected={updateTransaction} />
+      <TransactionDetailModal
+        transaction={selectedTx}
+        onClose={() => setSelectedTx(null)}
+        onCorrected={updateTransaction}
+        onDelete={(tx) => deleteTransaction(tx.id)}
+      />
       <AddTransactionModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={addTransaction} />
 
       <div className="relative max-w-6xl mx-auto space-y-6">
@@ -193,8 +205,7 @@ export default function LedgerPage() {
           </div>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="bg-vanta-navy text-white px-5 py-2.5 text-xs font-semibold transition-colors duration-150 flex items-center gap-2 rounded-lg active:scale-[0.98] hover:bg-vanta-navy/90"
-            style={{ boxShadow: SHADOW_SM }}
+            className="text-white px-5 py-2.5 text-xs font-semibold transition-all flex items-center gap-2 rounded-lg active:scale-[0.98] bg-vanta-navy hover:bg-vanta-navy-dark shadow-[0_6px_18px_-6px_rgba(1,90,234,0.45)] hover:shadow-[0_8px_22px_-6px_rgba(1,90,234,0.55)] hover:-translate-y-0.5"
           >
             <Plus size={16} />
             Add Transaction
