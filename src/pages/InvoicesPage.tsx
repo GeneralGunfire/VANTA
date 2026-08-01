@@ -20,14 +20,19 @@ const STATUS_LABEL: Record<Invoice['status'], string> = { draft: 'Draft', sent: 
  * manual status change only. See final report.
  */
 export default function InvoicesPage() {
-  const { invoices, isLoading, loadError, addInvoice, updateStatus } = useInvoices();
+  const { invoices, isLoading, loadError, addInvoice, updateStatus, deleteInvoice } = useInvoices();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
   return (
     <div className="relative flex-1 overflow-y-auto pt-12 px-6 md:px-12 lg:px-16 pb-32">
       <AddInvoiceModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={addInvoice} />
-      <InvoiceDetailModal invoice={selectedInvoice} onClose={() => setSelectedInvoice(null)} onUpdateStatus={updateStatus} />
+      <InvoiceDetailModal
+        invoice={selectedInvoice}
+        onClose={() => setSelectedInvoice(null)}
+        onUpdateStatus={updateStatus}
+        onDelete={deleteInvoice}
+      />
 
       <div className="relative max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-6">
@@ -37,8 +42,7 @@ export default function InvoicesPage() {
           </div>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="text-white px-5 py-2.5 text-xs font-semibold transition-all flex items-center gap-2 rounded-lg active:scale-[0.98] shadow-[0_6px_18px_-6px_rgba(30,90,168,0.55)] hover:shadow-[0_8px_22px_-6px_rgba(30,90,168,0.65)] hover:-translate-y-0.5"
-            style={{ background: 'linear-gradient(155deg, #2E6EBF 0%, #1E5AA8 60%, #153F78 100%)' }}
+            className="text-white px-5 py-2.5 text-xs font-semibold transition-all flex items-center gap-2 rounded-lg active:scale-[0.98] bg-vanta-navy hover:bg-vanta-navy-dark shadow-[0_6px_18px_-6px_rgba(1,90,234,0.45)] hover:shadow-[0_8px_22px_-6px_rgba(1,90,234,0.55)] hover:-translate-y-0.5"
           >
             <Plus size={16} />
             Create invoice
@@ -75,10 +79,10 @@ export default function InvoicesPage() {
                   <div className="flex items-center gap-4 shrink-0">
                     <span
                       className={cn(
-                        'text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full border',
-                        inv.status === 'paid'
-                          ? 'border-vanta-black text-vanta-black'
-                          : 'border-vanta-border text-vanta-gray',
+                        'text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full',
+                        inv.status === 'paid' && 'bg-vanta-success-tint text-vanta-success',
+                        inv.status === 'sent' && 'bg-vanta-accent-tint text-vanta-navy',
+                        inv.status === 'draft' && 'bg-vanta-sidebar text-vanta-gray border border-vanta-border',
                       )}
                     >
                       {STATUS_LABEL[inv.status]}
