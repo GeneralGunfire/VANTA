@@ -11,6 +11,13 @@
    * Warm neutral surfaces, a single restrained blue accent, status colors
    * reserved for state (never decoration). Depth comes from spacing,
    * typography, and layered shadows — not gradients or glass.
+   *
+   * The accent blue below is sampled directly from the real brand assets
+   * (src/assets/vanta-logo-mark.jpeg, vanta-logo-lockup.jpeg) rather than
+   * picked freehand, so the in-app UI and the brand identity are the same
+   * blue family. The brand's dark-navy/gradient hero treatment lives only
+   * in marketing surfaces (Landing, Auth) via the --brand-* tokens below —
+   * the in-app product UI stays on this light, restrained ground.
    */
   --color-vanta-bg: #F7F8FA;
   --color-vanta-panel: #FFFFFF;
@@ -20,9 +27,9 @@
   --color-vanta-border: rgba(17, 24, 39, 0.08);
   --color-vanta-border-strong: rgba(17, 24, 39, 0.12);
 
-  --color-vanta-navy: #2563EB;
-  --color-vanta-navy-dark: #1D4ED8;
-  --color-vanta-accent-tint: #EFF4FE;
+  --color-vanta-navy: #015AEA;
+  --color-vanta-navy-dark: #0A3FAE;
+  --color-vanta-accent-tint: #EAF2FE;
 
   --color-vanta-success: #16A34A;
   --color-vanta-success-tint: #F0FDF4;
@@ -32,6 +39,15 @@
   --color-vanta-danger-tint: #FEF2F2;
 
   --color-vanta-sidebar: #FBFBFC;
+
+  /* Brand marketing tokens — Landing/Auth only, sampled from the real
+     brand assets. Never used in the in-app product UI. */
+  --brand-navy-deep: #061F62;
+  --brand-blue-bright: #0A93FD;
+  --brand-blue-mid: #015AEA;
+  --brand-ink: #000620;
+  --brand-hero-bg-dark: #040E27;
+  --brand-hero-bg-glow: #042B76;
 
   /* shadcn/ui bridge — every value aliases a token above. */
   --color-background: var(--color-vanta-bg);

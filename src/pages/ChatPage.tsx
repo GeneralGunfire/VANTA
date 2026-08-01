@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
-import { Upload, AlertTriangle, ArrowUpRight, ArrowDownLeft, RefreshCw, Send } from 'lucide-react';
+import { Upload, AlertTriangle, ArrowUpRight, ArrowDownLeft, RefreshCw, Send, Repeat, X, Mic, Square } from 'lucide-react';
+import { toast } from 'sonner';
+import { findLikelyRecurringMatch } from '../lib/recurringMatch';
+import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import * as XLSX from 'xlsx';
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
@@ -9,10 +12,14 @@ import { cn } from '../lib/utils';
 import { SHADOW_MD, SHADOW_SM } from '../lib/surfaces';
 import type { AppShellContext } from '../layouts/AppLayout';
 import { useTransactions } from '../hooks/useTransactions';
+import { useDebts } from '../hooks/useDebts';
+import { useBusinessProfile } from '../hooks/useBusinessProfile';
 import { LedgerSummary } from '../components/dashboard/LedgerSummary';
 import { ActivityFeed } from '../components/dashboard/ActivityFeed';
 import { QuickActions } from '../components/dashboard/QuickActions';
+import { NudgeBar } from '../components/dashboard/NudgeBar';
 import TransactionDetailModal, { Transaction } from '../components/TransactionDetailModal';
+import vantaLogoMark from '../assets/vanta-logo-mark.jpeg';
 
 interface ParsedTransaction {
   id?: string;
@@ -41,6 +48,19 @@ const WELCOME: Message = {
   timestamp: '',
 };
 
+/**
+ * Prompt cards shown on the empty-state hero — same examples as
+ * QuickActions (kept in one place there for the active-conversation
+ * view), but rendered as cards here to match the reference template's
+ * greeting + prompt-card grid.
+ */
+const QUICK_PROMPT_CARDS = [
+  { label: 'Record a sale', example: 'sold 20 loaves, R400 cash' },
+  { label: 'Record an expense', example: 'bought flour for R180' },
+  { label: 'Log a deposit', example: 'deposited R2,000 cash at the bank' },
+  { label: 'Ask about the week', example: "how's business this week?" },
+];
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([WELCOME]);
   const [input, setInput] = useState('');
@@ -49,8 +69,15 @@ export default function ChatPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const composerRef = useRef<HTMLInputElement>(null);
 
-  const { transactions, isLoading: dashboardLoading, loadError: dashboardError } = useTransactions();
+  const { transactions, isLoading: dashboardLoading, loadError: dashboardError, deleteTransaction } = useTransactions();
+  const { debts } = useDebts();
+  const [recurringPromptDismissed, setRecurringPromptDismissed] = useState<Record<string, boolean>>({});
+  const [recurringConfirmed, setRecurringConfirmed] = useState<Record<string, boolean>>({});
+  const { profile } = useBusinessProfile();
+  const isVatRegistered = profile?.registration_status === 'registered_vat';
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  const recorder = useAudioRecorder();
+  const [micError, setMicError] = useState<string | null>(null);
 
   // Collapses the sidebar while the composer is active. Blurring restores it,
   // so the nav is always one click (or Escape) away.
@@ -71,6 +98,17 @@ export default function ChatPage() {
 
   // A route change while focused would otherwise strand the sidebar collapsed.
   useEffect(() => () => setComposerFocused(false), [setComposerFocused]);
+
+  useEffect(() => {
+    if (micError) {
+      toast.error(micError);
+      setMicError(null);
+    }
+  }, [micError]);
+
+  // Recording holds an open microphone stream — release it if the owner
+  // navigates away mid-recording rather than leaving the mic hot.
+  useEffect(() => () => recorder.cancelRecording(), []);
 
   // A future entry point (e.g. a "try this" link) can hand a phrase over via
   // router state. Load it into the composer (never auto-send — the owner
@@ -194,9 +232,80 @@ export default function ChatPage() {
     }
   };
 
+  /**
+   * Tap to start, tap again to stop — no separate stop control needed
+   * since the button itself swaps icon/state. On stop, the clip is sent
+   * to transcribe-audio and the result lands in the composer text input
+   * for the owner to review/edit, exactly like typed text — never
+   * auto-submitted as a transaction, since a mis-transcription should get
+   * the same chance to be caught before it's parsed.
+   */
+  const handleMicClick = async () => {
+    setMicError(null);
+
+    if (recorder.status === 'recording') {
+      const blob = await recorder.stopRecording();
+      if (!blob) {
+        recorder.reset();
+        return;
+      }
+
+      try {
+        if (!supabase) throw new Error('Supabase is not configured.');
+
+        const formData = new FormData();
+        formData.append('audio', blob, 'recording.webm');
+
+        const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+          body: formData,
+          headers: { 'x-vanta-anon-id': getAnonId() },
+        });
+
+        if (error) throw error;
+        if (data?.error || !data?.text) {
+          throw new Error(data?.error ?? "Couldn't hear that — try again or type it instead.");
+        }
+
+        setInput((prev) => (prev.trim() ? `${prev.trim()} ${data.text}` : data.text));
+        composerRef.current?.focus();
+      } catch (err: any) {
+        console.error('Transcription failed:', err);
+        setMicError(err?.message ?? "Couldn't hear that — try again or type it instead.");
+      } finally {
+        recorder.reset();
+      }
+      return;
+    }
+
+    try {
+      await recorder.startRecording();
+    } catch (err: any) {
+      console.error('Microphone access failed:', err);
+      setMicError(
+        err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError'
+          ? "Vanta needs microphone access to record — check your browser's permission settings and try again."
+          : (err?.message ?? "Couldn't access your microphone — try again or type it instead."),
+      );
+    }
+  };
+
+  const handleMarkRecurring = async (item: ParsedTransaction, key: string) => {
+    if (!item.id || !supabase) return;
+    try {
+      const { error } = await supabase.from('transactions').update({ is_recurring: true }).eq('id', item.id);
+      if (error) throw error;
+      setRecurringConfirmed((prev) => ({ ...prev, [key]: true }));
+      toast.success('Marked as recurring');
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Could not save — try again.');
+    }
+  };
+
   const renderTransactionCards = (items: ParsedTransaction[]) => (
     <div className="mt-4 space-y-3">
       {items.map((item, idx) => {
+        const cardKey = item.id ?? String(idx);
+
         if (item.needs_review) {
           return (
             <div
@@ -226,6 +335,10 @@ export default function ChatPage() {
           );
         }
 
+        const recurringMatch = !recurringPromptDismissed[cardKey] && !recurringConfirmed[cardKey]
+          ? findLikelyRecurringMatch(item, transactions)
+          : null;
+
         return (
           <div
             key={item.id ?? idx}
@@ -245,6 +358,37 @@ export default function ChatPage() {
               </div>
             </div>
             {item.description && <p className="text-sm text-vanta-gray">{item.description}</p>}
+
+            {recurringConfirmed[cardKey] && (
+              <div className="flex items-center gap-1.5 text-xs text-vanta-gray pt-3 border-t border-vanta-border">
+                <Repeat size={12} />
+                Marked as recurring
+              </div>
+            )}
+
+            {recurringMatch && (
+              <div className="flex items-center justify-between gap-3 pt-3 border-t border-vanta-border">
+                <span className="text-xs text-vanta-gray leading-snug flex items-center gap-1.5">
+                  <Repeat size={12} className="shrink-0" />
+                  This looks similar to "{recurringMatch.description || recurringMatch.raw_input}" from last time — mark as recurring?
+                </span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => handleMarkRecurring(item, cardKey)}
+                    className="text-xs font-semibold uppercase tracking-widest text-vanta-navy hover:text-vanta-navy-dark px-2 py-1"
+                  >
+                    Yes
+                  </button>
+                  <button
+                    onClick={() => setRecurringPromptDismissed((prev) => ({ ...prev, [cardKey]: true }))}
+                    aria-label="Dismiss"
+                    className="p-1 text-vanta-gray hover:text-vanta-black"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         );
       })}
@@ -262,6 +406,7 @@ export default function ChatPage() {
           <span>Couldn't load transactions: {dashboardError}</span>
         </div>
       )}
+      <NudgeBar transactions={transactions} debts={debts} isVatRegistered={isVatRegistered} />
       <LedgerSummary transactions={transactions} isLoading={dashboardLoading} />
       <ActivityFeed transactions={transactions} isLoading={dashboardLoading} onSelect={setSelectedTx} />
     </div>
@@ -285,9 +430,6 @@ export default function ChatPage() {
         className="relative flex items-center rounded-2xl border border-vanta-border bg-white transition-shadow duration-150 group-focus-within:border-vanta-navy/40 group-focus-within:ring-4 group-focus-within:ring-vanta-navy/8"
         style={{ boxShadow: SHADOW_MD }}
       >
-        <span className="pl-4.5 pr-1 text-vanta-gray-light text-[15px] font-medium select-none" aria-hidden="true">
-          R
-        </span>
         <input
           ref={composerRef}
           type="text"
@@ -295,8 +437,15 @@ export default function ChatPage() {
           onChange={(e) => setInput(e.target.value)}
           onFocus={() => setComposerFocused(true)}
           onBlur={() => setComposerFocused(false)}
-          placeholder="Tell me what happened…"
-          className="w-full bg-transparent py-4.5 pr-28 text-vanta-black placeholder-vanta-gray-light focus:outline-none text-[15px]"
+          placeholder={
+            recorder.status === 'recording'
+              ? 'Recording… tap the mic again to stop'
+              : recorder.status === 'transcribing'
+                ? 'Transcribing…'
+                : 'Tell me what happened…'
+          }
+          disabled={recorder.status === 'transcribing'}
+          className="w-full bg-transparent pl-5 py-4.5 pr-28 text-vanta-black placeholder-vanta-gray-light focus:outline-none text-[15px] disabled:cursor-wait"
         />
         <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
           <button
@@ -307,6 +456,22 @@ export default function ChatPage() {
           >
             <Upload size={16} />
           </button>
+          {recorder.isSupported && (
+            <button
+              type="button"
+              onClick={handleMicClick}
+              disabled={recorder.status === 'transcribing'}
+              title={recorder.status === 'recording' ? 'Stop recording' : 'Record a voice message'}
+              className={cn(
+                'p-2 rounded-lg transition-colors duration-150 disabled:opacity-40',
+                recorder.status === 'recording'
+                  ? 'text-white bg-vanta-navy hover:bg-vanta-navy-dark animate-pulse'
+                  : 'text-vanta-gray hover:text-vanta-black hover:bg-muted',
+              )}
+            >
+              {recorder.status === 'recording' ? <Square size={16} /> : <Mic size={16} />}
+            </button>
+          )}
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
@@ -327,110 +492,79 @@ export default function ChatPage() {
 
   if (isEmpty) {
     return (
-      <div className="flex-1 flex flex-col h-full relative overflow-y-auto overflow-x-hidden">
-        <TransactionDetailModal transaction={selectedTx} onClose={() => setSelectedTx(null)} />
-        <div className="relative flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center gap-10 px-6 py-16 min-h-full max-w-6xl mx-auto w-full">
-        <div className="flex-1 flex flex-col items-center min-w-0">
-          {/* Woven wireframe rings — decorative, tuned to the two brand colors (near-black + accent blue) so it reads as Vanta, not generic AI-demo flavor */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1, y: [0, -10, 0] }}
-            transition={{
-              opacity: { duration: 0.7 },
-              scale: { duration: 0.7 },
-              y: { duration: 6, repeat: Infinity, ease: 'easeInOut' },
-            }}
-            className="relative w-64 h-64 mb-4"
-          >
-            {/* Wide ambient glow — the hero moment behind the orb, tuned brighter so the canvas doesn't read as flat white */}
+      <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+        <TransactionDetailModal
+          transaction={selectedTx}
+          onClose={() => setSelectedTx(null)}
+          onDelete={(tx) => deleteTransaction(tx.id)}
+        />
+
+        {/*
+          Matches the reference template exactly: a plain light canvas
+          throughout (never a dark/gradient background — that reads worse
+          for a bookkeeping app where the Ledger and every data table need
+          to stay legible on the same ground), with the brand gradient
+          applied only to the accent word inside the heading, the same way
+          the reference gradients just "John" inside "Hi there, John."
+        */}
+        <div className="relative flex-1 flex flex-col items-center justify-center px-6 py-16">
+          <div className="w-full max-w-2xl flex flex-col items-center text-center">
             <motion.div
-              animate={{ opacity: [0.35, 0.55, 0.35], scale: [0.95, 1.1, 0.95] }}
-              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute -inset-16 rounded-full blur-3xl"
-              style={{ background: 'radial-gradient(circle, rgba(46,110,191,0.28) 0%, rgba(30,90,168,0.14) 45%, transparent 70%)' }}
-            />
-            {/* Tighter core shadow, grounds the orb */}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 bg-white p-2.5"
+              style={{ boxShadow: SHADOW_MD }}
+            >
+              <img src={vantaLogoMark} alt="" className="w-full h-full object-contain" />
+            </motion.div>
+
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.05 }}>
+              <h1 className="text-[34px] md:text-[42px] font-semibold leading-[1.15] mb-3 text-wrap-balance">
+                <span className="text-vanta-black">What happened in your </span>
+                <span
+                  className="bg-clip-text text-transparent"
+                  style={{ backgroundImage: `linear-gradient(90deg, ${'#015AEA'}, ${'#0A93FD'})` }}
+                >
+                  business
+                </span>
+                <span className="text-vanta-black"> today?</span>
+              </h1>
+              <p className="text-[15px] text-vanta-gray mb-8">
+                Use one of the examples below, or tell me in your own words.
+              </p>
+            </motion.div>
+
             <motion.div
-              animate={{ opacity: [0.25, 0.4, 0.25], scale: [0.9, 1.05, 0.9] }}
-              transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute inset-8 rounded-full blur-3xl"
-              style={{ background: 'radial-gradient(circle, rgba(30,90,168,0.28) 0%, rgba(28,28,28,0.1) 55%, transparent 75%)' }}
-            />
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.12 }}
+              className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5 w-full"
+            >
+              {QUICK_PROMPT_CARDS.map((card) => (
+                <motion.button
+                  key={card.label}
+                  onClick={() => handleQuickPrompt(card.example)}
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="text-left p-4 rounded-2xl border border-vanta-border bg-white hover:border-vanta-navy/30 hover:bg-accent transition-colors duration-150"
+                  style={{ boxShadow: SHADOW_SM }}
+                >
+                  <div className="text-[13px] font-medium text-vanta-black mb-1">{card.label}</div>
+                  <div className="text-[12px] font-mono text-vanta-gray-light truncate">{card.example}</div>
+                </motion.button>
+              ))}
+            </motion.div>
 
-            {/* Four counter-rotating ring layers, near-black fading to accent blue */}
-            {[
-              { dur: 16, dir: 360, tilt: 0, delayRings: [0, 30, 60] },
-              { dur: 22, dir: -360, tilt: 45, delayRings: [15, 50, 80] },
-              { dur: 28, dir: 360, tilt: 90, delayRings: [10, 40, 70] },
-              { dur: 34, dir: -360, tilt: 135, delayRings: [5, 55, 95] },
-            ].map((layer, li) => (
-              <motion.svg
-                key={li}
-                viewBox="0 0 200 200"
-                className="absolute inset-0 w-full h-full"
-                animate={{ rotate: layer.dir }}
-                transition={{ duration: layer.dur, repeat: Infinity, ease: 'linear' }}
-                style={{ filter: 'drop-shadow(0 3px 8px rgba(28,28,28,0.18))' }}
-              >
-                <defs>
-                  <linearGradient id={`ringGrad${li}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#111827" stopOpacity="0.9" />
-                    <stop offset="45%" stopColor="#2563EB" stopOpacity="0.65" />
-                    <stop offset="75%" stopColor="#2563EB" stopOpacity="0.35" />
-                    <stop offset="100%" stopColor="#2563EB" stopOpacity="0.08" />
-                  </linearGradient>
-                </defs>
-                {layer.delayRings.map((rot, ri) => (
-                  <ellipse
-                    key={ri}
-                    cx="100"
-                    cy="100"
-                    rx="82"
-                    ry={32 + ri * 11}
-                    fill="none"
-                    stroke={`url(#ringGrad${li})`}
-                    strokeWidth={ri === 0 ? 2 : 1.1}
-                    transform={`rotate(${layer.tilt + rot} 100 100)`}
-                    opacity={0.9 - ri * 0.18}
-                  />
-                ))}
-              </motion.svg>
-            ))}
-          </motion.div>
-
-          <h1 className="text-3xl md:text-4xl font-serif text-vanta-black text-center mb-3 leading-tight max-w-xl">
-            What happened in your business today?
-          </h1>
-          <p className="text-base text-vanta-gray text-center mb-10">
-            Tell me in plain language — I'll keep the books.
-          </p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="w-full max-w-2xl"
-          >
-            {inputBar}
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.18 }}
-            className="w-full max-w-2xl mt-6"
-          >
-            <QuickActions onSelect={handleQuickPrompt} />
-          </motion.div>
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.22 }}
-        >
-          {dashboardRail}
-        </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              className="w-full"
+            >
+              {inputBar}
+            </motion.div>
+          </div>
         </div>
       </div>
     );

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Home, BookOpen, Users, CalendarClock, Package, FolderLock, TrendingUp, FileText, FileCheck, Truck, History, HelpCircle, Menu, LogOut, Search } from 'lucide-react';
+import { Home, BookOpen, Users, CalendarClock, Package, FolderLock, TrendingUp, FileText, FileCheck, Truck, History, HelpCircle, Menu, LogOut, Search, Building2, Trash2, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { APP_SURFACE, SHADOW_MD } from '../lib/surfaces';
@@ -8,6 +8,7 @@ import { useTransactions } from '../hooks/useTransactions';
 import { needsReviewCount } from '../lib/metrics';
 import { Badge } from '../components/ui/badge';
 import { CommandPalette, useCommandPalette } from '../components/CommandPalette';
+import vantaLogoMark from '../assets/vanta-logo-mark.jpeg';
 
 interface NavItem {
   name: string;
@@ -23,20 +24,38 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    label: 'Workspace',
+    label: 'Core',
     items: [
       { name: 'Home', path: '/app/chat', icon: Home },
       { name: 'Ledger', path: '/app/ledger', icon: BookOpen },
-      { name: 'Forecast', path: '/app/forecast', icon: TrendingUp },
+    ],
+  },
+  {
+    label: 'Money',
+    items: [
       { name: 'Debtors & Creditors', path: '/app/debtors', icon: Users },
       { name: 'Invoices', path: '/app/invoices', icon: FileText },
-      { name: 'Tax Calendar', path: '/app/tax-calendar', icon: CalendarClock },
-      { name: 'Inventory', path: '/app/inventory', icon: Package },
+      { name: 'Cashflow Forecast', path: '/app/forecast', icon: TrendingUp },
+      { name: 'What If', path: '/app/what-if', icon: HelpCircle },
+    ],
+  },
+  {
+    label: 'Business',
+    items: [
       { name: 'Suppliers', path: '/app/suppliers', icon: Truck },
       { name: 'Timeline', path: '/app/timeline', icon: History },
-      { name: 'What If', path: '/app/what-if', icon: HelpCircle },
-      { name: 'Document Vault', path: '/app/documents', icon: FolderLock },
       { name: 'Business Record', path: '/app/business-record', icon: FileCheck },
+      { name: 'Inventory', path: '/app/inventory', icon: Package },
+    ],
+  },
+  {
+    label: 'Admin',
+    items: [
+      { name: 'Business Profile', path: '/app/business-profile', icon: Building2 },
+      { name: 'Tax Calendar', path: '/app/tax-calendar', icon: CalendarClock },
+      { name: 'Document Vault', path: '/app/documents', icon: FolderLock },
+      { name: 'Data & Privacy', path: '/app/data-privacy', icon: ShieldCheck },
+      { name: 'Recently Deleted', path: '/app/recently-deleted', icon: Trash2 },
     ],
   },
 ];
@@ -73,8 +92,8 @@ export default function AppLayout() {
       {/* Mobile Header & Menu Toggle */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 border-b border-vanta-border bg-white flex items-center justify-between px-4 z-50">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-vanta-navy text-white flex items-center justify-center font-semibold text-sm">
-            V
+          <div className="w-7 h-7 rounded-lg bg-white shrink-0 flex items-center justify-center p-1">
+            <img src={vantaLogoMark} alt="" className="w-full h-full object-contain" />
           </div>
           <span className="text-[15px] font-semibold text-vanta-black tracking-tight">Vanta</span>
         </div>
@@ -103,8 +122,8 @@ export default function AppLayout() {
             {/* Brand */}
             <div className={cn('pt-5 pb-3 transition-all', collapsed ? 'px-3' : 'px-4')}>
               <div className={cn('flex items-center gap-2.5 pt-10 md:pt-0', collapsed && 'justify-center')}>
-                <div className="w-8 h-8 shrink-0 rounded-lg bg-vanta-navy text-white flex items-center justify-center font-semibold text-sm">
-                  V
+                <div className="w-8 h-8 shrink-0 rounded-lg bg-white flex items-center justify-center p-1">
+                  <img src={vantaLogoMark} alt="" className="w-full h-full object-contain" />
                 </div>
                 {!collapsed && (
                   <span className="text-[15px] font-semibold text-vanta-black tracking-tight whitespace-nowrap">Vanta</span>
