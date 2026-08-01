@@ -41,37 +41,43 @@ export default function BusinessRecordPage() {
             Nothing recorded yet — this page fills in as you record transactions in chat.
           </div>
         ) : (
-          <div className="border border-vanta-border rounded-2xl overflow-hidden bg-white" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
-            <div className="divide-y divide-vanta-border/60">
-              <div className="flex items-center justify-between px-6 py-4">
-                <span className="text-sm text-vanta-gray">Recording since</span>
-                <span className="text-sm font-mono text-vanta-black">
-                  {new Date(record.recordingSince!).toLocaleDateString('en-ZA', { year: 'numeric', month: 'long' })} · {record.monthsRecording}{' '}
-                  {record.monthsRecording === 1 ? 'month' : 'months'}
-                </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="border border-vanta-border rounded-2xl bg-white p-5 sm:col-span-2" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+              <div className="text-[11px] uppercase tracking-widest text-vanta-gray-light mb-1.5">Recording since</div>
+              <div className="text-2xl font-mono font-semibold text-vanta-black">
+                {new Date(record.recordingSince!).toLocaleDateString('en-ZA', { year: 'numeric', month: 'long' })}
               </div>
-              <div className="flex items-center justify-between px-6 py-4">
-                <span className="text-sm text-vanta-gray">Total recorded revenue</span>
-                <span className="text-sm font-mono text-vanta-black font-semibold">{fmt(record.totalRevenue)}</span>
+              <div className="text-xs text-vanta-gray mt-1">
+                {record.monthsRecording} {record.monthsRecording === 1 ? 'month' : 'months'} of records
               </div>
-              <div className="flex items-center justify-between px-6 py-4">
-                <span className="text-sm text-vanta-gray">Average monthly revenue</span>
-                <span className="text-sm font-mono text-vanta-black">{fmt(record.avgMonthlyRevenue)}</span>
+            </div>
+
+            <div className="border border-vanta-border rounded-2xl bg-white p-5" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+              <div className="text-[11px] uppercase tracking-widest text-vanta-gray-light mb-1.5">Total recorded revenue</div>
+              <div className="text-2xl font-mono font-semibold text-vanta-black">{fmt(record.totalRevenue)}</div>
+            </div>
+
+            <div className="border border-vanta-border rounded-2xl bg-white p-5" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+              <div className="text-[11px] uppercase tracking-widest text-vanta-gray-light mb-1.5">Average monthly revenue</div>
+              <div className="text-2xl font-mono font-semibold text-vanta-black">{fmt(record.avgMonthlyRevenue)}</div>
+            </div>
+
+            <div className="border border-vanta-border rounded-2xl bg-white p-5" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+              <div className="text-[11px] uppercase tracking-widest text-vanta-gray-light mb-1.5">Records maintained</div>
+              <div className="text-2xl font-mono font-semibold text-vanta-black">
+                {record.monthsWithActivity}<span className="text-vanta-gray-light text-lg"> / {record.monthsChecked}</span>
               </div>
-              <div className="flex items-center justify-between px-6 py-4">
-                <span className="text-sm text-vanta-gray">Records maintained</span>
-                <span className="text-sm font-mono text-vanta-black">
-                  {record.monthsWithActivity} of last {record.monthsChecked} months
-                </span>
-              </div>
-              <div className="flex items-center justify-between px-6 py-4">
-                <span className="text-sm text-vanta-gray">Currently owed to the business</span>
-                <span className="text-sm font-mono text-vanta-black">{fmt(record.outstandingOwedToBusiness)}</span>
-              </div>
-              <div className="flex items-center justify-between px-6 py-4">
-                <span className="text-sm text-vanta-gray">Currently owed by the business</span>
-                <span className="text-sm font-mono text-vanta-black">{fmt(record.outstandingOwedByBusiness)}</span>
-              </div>
+              <div className="text-xs text-vanta-gray mt-1">months with activity</div>
+            </div>
+
+            <div className="border border-vanta-border rounded-2xl bg-white p-5" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+              <div className="text-[11px] uppercase tracking-widest text-vanta-gray-light mb-1.5">Owed to the business</div>
+              <div className="text-2xl font-mono font-semibold text-vanta-black">{fmt(record.outstandingOwedToBusiness)}</div>
+            </div>
+
+            <div className="border border-vanta-border rounded-2xl bg-white p-5" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+              <div className="text-[11px] uppercase tracking-widest text-vanta-gray-light mb-1.5">Owed by the business</div>
+              <div className="text-2xl font-mono font-semibold text-vanta-black">{fmt(record.outstandingOwedByBusiness)}</div>
             </div>
           </div>
         )}

@@ -49,9 +49,13 @@ export default function ForecastPage() {
               className="border border-vanta-border rounded-2xl bg-white p-6"
               style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}
             >
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-4">
                 <TrendingUp size={16} className="text-vanta-navy" />
                 <span className="text-[10px] uppercase tracking-widest font-semibold text-vanta-black">7-day estimate</span>
+              </div>
+              <div className="flex items-baseline gap-2 mb-3">
+                <span className="text-3xl font-mono font-semibold text-vanta-black">{fmt(forecast.estimatedNet)}</span>
+                <span className="text-sm text-vanta-gray">{shortfall ? 'estimated shortfall' : 'estimated surplus'}</span>
               </div>
               <p className="text-sm text-vanta-black leading-relaxed">
                 Based on your recent pattern, you may {shortfall ? 'be short by about' : 'come out ahead by about'}{' '}
