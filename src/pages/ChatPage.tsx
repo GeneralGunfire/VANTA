@@ -55,10 +55,10 @@ const WELCOME: Message = {
  * greeting + prompt-card grid.
  */
 const QUICK_PROMPT_CARDS = [
-  { label: 'Record a sale', example: 'sold 20 loaves, R400 cash', icon: ArrowDownLeft },
-  { label: 'Record an expense', example: 'bought flour for R180', icon: ArrowUpRight },
-  { label: 'Log a deposit', example: 'deposited R2,000 cash at the bank', icon: Upload },
-  { label: 'Ask about the week', example: "how's business this week?", icon: RefreshCw },
+  { label: 'Record a sale', example: 'sold 20 loaves, R400 cash' },
+  { label: 'Record an expense', example: 'bought flour for R180' },
+  { label: 'Log a deposit', example: 'deposited R2,000 cash at the bank' },
+  { label: 'Ask about the week', example: "how's business this week?" },
 ];
 
 export default function ChatPage() {
@@ -545,16 +545,13 @@ export default function ChatPage() {
                 <motion.button
                   key={card.label}
                   onClick={() => handleQuickPrompt(card.example)}
-                  whileHover={{ y: -2 }}
+                  whileHover={{ y: -3 }}
                   whileTap={{ scale: 0.98 }}
-                  className="group text-left p-4 rounded-2xl border border-vanta-border bg-white hover:border-vanta-navy/30 hover:bg-accent transition-colors duration-150"
+                  className="flex flex-col items-center text-center gap-1.5 p-5 rounded-2xl border border-vanta-border bg-white hover:border-vanta-navy/30 hover:bg-accent transition-colors duration-150"
                   style={{ boxShadow: SHADOW_SM }}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-vanta-accent-tint text-vanta-navy flex items-center justify-center mb-3 group-hover:bg-vanta-navy group-hover:text-white transition-colors duration-150">
-                    <card.icon size={15} />
-                  </div>
-                  <div className="text-[13px] font-medium text-vanta-black mb-1">{card.label}</div>
-                  <div className="text-[12px] font-mono text-vanta-gray-light truncate">{card.example}</div>
+                  <div className="text-[13px] font-medium text-vanta-black">{card.label}</div>
+                  <div className="text-[12px] font-mono text-vanta-gray-light">{card.example}</div>
                 </motion.button>
               ))}
             </motion.div>
