@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, AlertTriangle, Check } from 'lucide-react';
+import { Plus, AlertTriangle, Check, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDebts, type Debt } from '../hooks/useDebts';
 import AddDebtModal from '../components/AddDebtModal';
@@ -19,32 +19,53 @@ interface DebtSectionProps {
   totalLabel: string;
   debts: Debt[];
   onSettle: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
-function DebtSection({ title, totalLabel, debts, onSettle }: DebtSectionProps) {
+function DebtSection({ title, totalLabel, debts, onSettle, onDelete }: DebtSectionProps) {
   const total = debts.reduce((sum, d) => sum + (d.amount ?? 0), 0);
 
   return (
     <div className="border border-vanta-border rounded-2xl overflow-hidden bg-white" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
-      <div className="flex items-center justify-between px-6 py-4 border-b border-vanta-border">
-        <h2 className="text-sm font-semibold text-vanta-black">{title}</h2>
-        <span className="text-sm font-mono text-vanta-black">
-          {totalLabel}: R{fmt(total)}
-        </span>
+      <div className="flex items-center justify-between px-6 py-5 border-b border-vanta-border">
+        <div>
+          <h2 className="text-sm font-semibold text-vanta-black">{title}</h2>
+          <span className="text-[11px] text-vanta-gray-light">
+            {debts.length} {debts.length === 1 ? 'entry' : 'entries'} outstanding
+          </span>
+        </div>
+        <div className="text-right">
+          <div className="text-[10px] uppercase tracking-widest text-vanta-gray-light">{totalLabel}</div>
+          <div className="text-lg font-mono font-semibold text-vanta-black">R{fmt(total)}</div>
+        </div>
       </div>
 
       {debts.length === 0 ? (
-        <div className="text-center py-12 text-vanta-gray text-sm px-6">Nothing here right now.</div>
+        <div className="text-center py-14 text-vanta-gray text-sm px-6">Nothing here right now.</div>
       ) : (
         <div className="divide-y divide-vanta-border/60">
-          {debts.map((d) => (
-            <div key={d.id} className="flex items-center justify-between gap-4 px-6 py-4">
+          {debts.map((d) => {
+            const daysOld = Math.floor((Date.now() - new Date(d.created_at).getTime()) / (1000 * 60 * 60 * 24));
+            const isOverdue = daysOld >= 30;
+            return (
+            <div
+              key={d.id}
+              className={`flex items-center justify-between gap-4 px-6 py-4 ${isOverdue ? 'border-l-2 border-l-vanta-black' : ''}`}
+            >
               <div className="min-w-0">
                 <div className="text-sm font-medium text-vanta-black truncate">{d.party_name || 'Unknown'}</div>
                 {d.description && <div className="text-xs text-vanta-gray mt-0.5 truncate">{d.description}</div>}
-                <div className="text-[10px] uppercase tracking-widest text-vanta-gray-light mt-1">{ageLabel(d.created_at)}</div>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="text-[10px] uppercase tracking-widest text-vanta-gray-light">{ageLabel(d.created_at)}</span>
+                  {isOverdue && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-vanta-black">
+                      <AlertTriangle size={10} />
+                      30+ days
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-4 shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 <span className="font-mono text-sm text-vanta-black">R{fmt(d.amount ?? 0)}</span>
                 <button
                   onClick={() => onSettle(d.id)}
@@ -53,9 +74,17 @@ function DebtSection({ title, totalLabel, debts, onSettle }: DebtSectionProps) {
                   <Check size={12} />
                   Settle
                 </button>
+                <button
+                  onClick={() => onDelete(d.id)}
+                  aria-label={`Delete ${d.party_name ?? 'debt'}`}
+                  className="p-1.5 rounded-lg text-vanta-gray hover:text-vanta-black hover:bg-vanta-sidebar transition-colors"
+                >
+                  <Trash2 size={13} />
+                </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -69,7 +98,7 @@ function DebtSection({ title, totalLabel, debts, onSettle }: DebtSectionProps) {
  * than half-built. See final report.
  */
 export default function DebtorsPage() {
-  const { debts, isLoading, loadError, addDebt, settleDebt } = useDebts();
+  const { debts, isLoading, loadError, addDebt, settleDebt, deleteDebt } = useDebts();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const owedToYou = debts.filter((d) => d.direction === 'owed_to_business' && d.status === 'outstanding');
@@ -81,6 +110,15 @@ export default function DebtorsPage() {
       toast.success('Marked as settled');
     } catch (err: any) {
       toast.error(err?.message ?? 'Could not update — try again.');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteDebt(id);
+      toast.success('Deleted — restore it from Recently Deleted if needed');
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Could not delete — try again.');
     }
   };
 
@@ -96,8 +134,7 @@ export default function DebtorsPage() {
           </div>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="text-white px-5 py-2.5 text-xs font-semibold transition-all flex items-center gap-2 rounded-lg active:scale-[0.98] shadow-[0_6px_18px_-6px_rgba(30,90,168,0.55)] hover:shadow-[0_8px_22px_-6px_rgba(30,90,168,0.65)] hover:-translate-y-0.5"
-            style={{ background: 'linear-gradient(155deg, #2E6EBF 0%, #1E5AA8 60%, #153F78 100%)' }}
+            className="text-white px-5 py-2.5 text-xs font-semibold transition-all flex items-center gap-2 rounded-lg active:scale-[0.98] bg-vanta-navy hover:bg-vanta-navy-dark shadow-[0_6px_18px_-6px_rgba(1,90,234,0.45)] hover:shadow-[0_8px_22px_-6px_rgba(1,90,234,0.55)] hover:-translate-y-0.5"
           >
             <Plus size={16} />
             Add debtor / creditor
@@ -117,8 +154,8 @@ export default function DebtorsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DebtSection title="Owed to you" totalLabel="Total owed to you" debts={owedToYou} onSettle={handleSettle} />
-            <DebtSection title="You owe" totalLabel="Total you owe" debts={youOwe} onSettle={handleSettle} />
+            <DebtSection title="Owed to you" totalLabel="Total owed to you" debts={owedToYou} onSettle={handleSettle} onDelete={handleDelete} />
+            <DebtSection title="You owe" totalLabel="Total you owe" debts={youOwe} onSettle={handleSettle} onDelete={handleDelete} />
           </div>
         )}
       </div>
