@@ -6,6 +6,7 @@ import { cn } from '../lib/utils';
 import { ACCENT_SURFACE } from '../lib/surfaces';
 import { supabase } from '../lib/supabase';
 import { getAnonId } from '../lib/anonId';
+import vantaLogoMark from '../assets/vanta-logo-mark.jpeg';
 
 export default function AuthPage() {
   const [searchParams] = useSearchParams();
@@ -85,8 +86,8 @@ export default function AuthPage() {
             className="text-2xl font-serif font-bold mb-14 cursor-pointer flex items-center gap-3 group w-fit"
             onClick={() => navigate('/')}
           >
-            <div className="w-9 h-9 bg-white text-vanta-navy flex items-center justify-center font-serif font-bold text-lg rounded-full group-hover:scale-105 transition-transform">
-              V
+            <div className="w-9 h-9 bg-white flex items-center justify-center rounded-full p-1.5 group-hover:scale-105 transition-transform">
+              <img src={vantaLogoMark} alt="" className="w-full h-full object-contain" />
             </div>
             <span className="tracking-tight">Vanta</span>
           </div>
