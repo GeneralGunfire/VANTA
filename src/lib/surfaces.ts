@@ -17,10 +17,10 @@ export const RAISED_SURFACE = '#FFFFFF';
 export const CARD_SURFACE = '#FFFFFF';
 
 /** Icon containers inside cards — a faint tint of the single accent, never a gradient. */
-export const CHIP_SURFACE = '#EFF4FE';
+export const CHIP_SURFACE = '#EAF2FE';
 
-/** Flat accent panel (e.g. Auth's branding side) — solid fill, no gradient. */
-export const ACCENT_SURFACE = '#2563EB';
+/** Flat accent panel (e.g. Auth's branding side) — solid fill, no gradient. Sampled from the real brand assets, see index.css. */
+export const ACCENT_SURFACE = '#015AEA';
 
 /** Layered shadow scale — apply as inline style or via the shadow-vanta-* theme tokens. */
 export const SHADOW_SM = '0 1px 2px rgba(17,24,39,0.03)';

@@ -125,7 +125,7 @@ export default function LandingPage() {
               >
                 <path
                   d="M2 8.5C60 3 130 2 170 5.5C210 9 260 9.5 298 4"
-                  stroke="#1E5AA8"
+                  stroke="#015AEA"
                   strokeWidth="3"
                   strokeLinecap="round"
                   opacity="0.35"
