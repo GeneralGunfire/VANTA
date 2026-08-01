@@ -34,9 +34,9 @@ interface LedgerRow {
   month: string;
   date: string;
   accountType: string;
-  debit: number;
-  credit: number;
-  runningBalance: number;
+  moneyOut: number;
+  moneyIn: number;
+  total: number;
 }
 
 const columnHelper = createColumnHelper<LedgerRow>();
@@ -74,37 +74,37 @@ export default function LedgerPage() {
     });
   }, [transactions, searchQuery, filterType]);
 
-  const OPENING_BALANCE = 10000;
+  const STARTING_TOTAL = 10000;
 
-  // Running balance is defined by chronological posting order, not by
-  // whatever the user is currently sorting the view by — so it's computed
-  // once here, upstream of the table, and never recalculated on sort.
+  // The running total follows chronological order, not whatever the user
+  // is currently sorting the view by — so it's computed once here,
+  // upstream of the table, and never recalculated on sort.
   const ledgerRows: LedgerRow[] = useMemo(() => {
     const sorted = [...filteredTransactions].sort(
       (a, b) => new Date(a.date || a.created_at).getTime() - new Date(b.date || b.created_at).getTime(),
     );
 
-    let runningBalance = OPENING_BALANCE;
+    let runningTotal = STARTING_TOTAL;
     return sorted.map((t) => {
-      const debit = t.direction === 'out' ? t.amount ?? 0 : 0;
-      const credit = t.direction === 'in' ? t.amount ?? 0 : 0;
-      runningBalance += credit - debit;
+      const moneyOut = t.direction === 'out' ? t.amount ?? 0 : 0;
+      const moneyIn = t.direction === 'in' ? t.amount ?? 0 : 0;
+      runningTotal += moneyIn - moneyOut;
       const d = new Date(t.date || t.created_at);
       return {
         tx: t,
         month: d.toLocaleDateString('en-ZA', { month: 'short' }),
         date: d.toLocaleDateString('en-ZA', { day: '2-digit', month: '2-digit' }),
         accountType: CATEGORY_TYPE[t.category] ?? 'Expense',
-        debit,
-        credit,
-        runningBalance,
+        moneyOut,
+        moneyIn,
+        total: runningTotal,
       };
     });
   }, [filteredTransactions]);
 
-  const totalDebit = ledgerRows.reduce((sum, r) => sum + r.debit, 0);
-  const totalCredit = ledgerRows.reduce((sum, r) => sum + r.credit, 0);
-  const endingBalance = OPENING_BALANCE + totalCredit - totalDebit;
+  const totalMoneyOut = ledgerRows.reduce((sum, r) => sum + r.moneyOut, 0);
+  const totalMoneyIn = ledgerRows.reduce((sum, r) => sum + r.moneyIn, 0);
+  const endingTotal = STARTING_TOTAL + totalMoneyIn - totalMoneyOut;
 
   const needsReviewCount = transactions.filter((t) => t.needs_review).length;
 
@@ -122,7 +122,7 @@ export default function LedgerPage() {
       }),
       columnHelper.display({
         id: 'description',
-        header: 'Account Name',
+        header: 'What happened',
         cell: ({ row }) => (
           <span className="text-vanta-black font-medium">
             {row.original.tx.description || row.original.tx.raw_input || '—'}
@@ -142,27 +142,27 @@ export default function LedgerPage() {
         ),
       }),
       columnHelper.accessor('accountType', {
-        header: 'Description',
+        header: 'Type',
         cell: (info) => <span className="text-vanta-gray">{info.getValue()}</span>,
       }),
-      columnHelper.accessor('debit', {
-        header: 'Debit',
+      columnHelper.accessor('moneyOut', {
+        header: 'Money out',
         cell: (info) => (
           <span className="text-right font-mono text-vanta-black block">
             {info.getValue() > 0 ? `R${fmt(info.getValue())}` : '—'}
           </span>
         ),
       }),
-      columnHelper.accessor('credit', {
-        header: 'Credit',
+      columnHelper.accessor('moneyIn', {
+        header: 'Money in',
         cell: (info) => (
           <span className="text-right font-mono text-vanta-black block">
             {info.getValue() > 0 ? `R${fmt(info.getValue())}` : '—'}
           </span>
         ),
       }),
-      columnHelper.accessor('runningBalance', {
-        header: 'Running Balance',
+      columnHelper.accessor('total', {
+        header: 'Total so far',
         cell: (info) => (
           <span className="text-right font-mono font-semibold text-vanta-black block">R{fmt(info.getValue())}</span>
         ),
@@ -232,10 +232,10 @@ export default function LedgerPage() {
 
             <div className="shrink-0">
               <div className="text-[11px] uppercase tracking-[0.08em] text-vanta-gray font-medium">
-                Opening balance
+                Starting total
               </div>
               <div className="mt-1 text-[20px] leading-none font-mono font-semibold tabular-nums text-vanta-black">
-                R{fmt(OPENING_BALANCE)}
+                R{fmt(STARTING_TOTAL)}
               </div>
             </div>
           </div>
@@ -298,7 +298,7 @@ export default function LedgerPage() {
                   {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id} className="bg-vanta-sidebar text-vanta-gray uppercase tracking-wider text-[10px] hover:bg-vanta-sidebar">
                       {headerGroup.headers.map((header) => {
-                        const isNumeric = ['debit', 'credit', 'runningBalance'].includes(header.column.id);
+                        const isNumeric = ['moneyOut', 'moneyIn', 'total'].includes(header.column.id);
                         return (
                           <TableHead
                             key={header.id}
@@ -345,9 +345,9 @@ export default function LedgerPage() {
                     <TableCell colSpan={5} className="px-4 py-3 text-right text-vanta-gray uppercase tracking-wider text-[10px]">
                       Totals
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(totalDebit)}</TableCell>
-                    <TableCell className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(totalCredit)}</TableCell>
-                    <TableCell className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(endingBalance)}</TableCell>
+                    <TableCell className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(totalMoneyOut)}</TableCell>
+                    <TableCell className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(totalMoneyIn)}</TableCell>
+                    <TableCell className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(endingTotal)}</TableCell>
                   </TableRow>
                 </TableFooter>
               </Table>

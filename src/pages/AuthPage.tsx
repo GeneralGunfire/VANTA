@@ -4,6 +4,8 @@ import { ArrowRight, Phone, KeyRound, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { ACCENT_SURFACE } from '../lib/surfaces';
+import { supabase } from '../lib/supabase';
+import { getAnonId } from '../lib/anonId';
 
 export default function AuthPage() {
   const [searchParams] = useSearchParams();
@@ -38,8 +40,23 @@ export default function AuthPage() {
     }
   };
 
-  const handleBusinessSubmit = (e: React.FormEvent) => {
+  const handleBusinessSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Persist the business name/type collected here so Business Profile
+    // and Tax Calendar have real data from day one, instead of a second,
+    // disconnected place to enter the same facts later. Best-effort: a
+    // failed write shouldn't block sign-up, since the Business Profile
+    // page lets the owner fill this in afterward either way.
+    if (supabase) {
+      try {
+        await supabase.from('business_profile').upsert(
+          { anon_id: getAnonId(), business_name: businessName, business_type: businessType },
+          { onConflict: 'anon_id' },
+        );
+      } catch (err) {
+        console.error('Error saving business profile during sign-up:', err);
+      }
+    }
     finishAuth();
   };
 
