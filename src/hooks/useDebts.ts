@@ -13,6 +13,7 @@ export interface Debt {
   created_at: string;
   settled_at: string | null;
   transaction_id: string | null;
+  deleted_at?: string | null;
 }
 
 interface UseDebtsResult {
@@ -23,6 +24,8 @@ interface UseDebtsResult {
   addDebt: (debt: Debt) => void;
   /** Mark a debt settled — optimistically updates local state before the write resolves. */
   settleDebt: (id: string) => Promise<void>;
+  /** Soft-deletes a debt (sets deleted_at) — optimistic, rolls back on failure. */
+  deleteDebt: (id: string) => Promise<void>;
 }
 
 /**
@@ -45,6 +48,7 @@ export function useDebts(): UseDebtsResult {
           .from('debts')
           .select('*')
           .eq('anon_id', getAnonId())
+          .is('deleted_at', null)
           .order('created_at', { ascending: false })
           .limit(500);
 
@@ -81,5 +85,18 @@ export function useDebts(): UseDebtsResult {
     }
   };
 
-  return { debts, isLoading, loadError, addDebt, settleDebt };
+  const deleteDebt = async (id: string) => {
+    const prev = debts;
+    setDebts((p) => p.filter((d) => d.id !== id));
+
+    if (!supabase) return;
+    const { error } = await supabase.from('debts').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+    if (error) {
+      console.error('Error deleting debt:', error);
+      setDebts(prev);
+      throw error;
+    }
+  };
+
+  return { debts, isLoading, loadError, addDebt, settleDebt, deleteDebt };
 }

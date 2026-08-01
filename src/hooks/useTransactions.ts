@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { getAnonId } from '../lib/anonId';
 import type { Transaction } from '../components/TransactionDetailModal';
 
 interface UseTransactionsResult {
@@ -10,6 +11,8 @@ interface UseTransactionsResult {
   addTransaction: (tx: Transaction) => void;
   /** Replace a transaction in place after a correction persists. */
   updateTransaction: (tx: Transaction) => void;
+  /** Soft-deletes a transaction (sets deleted_at) — optimistic, rolls back on failure. */
+  deleteTransaction: (id: string) => Promise<void>;
 }
 
 /**
@@ -32,6 +35,8 @@ export function useTransactions(): UseTransactionsResult {
         const { data, error } = await supabase
           .from('transactions')
           .select('*')
+          .eq('anon_id', getAnonId())
+          .is('deleted_at', null)
           .order('created_at', { ascending: false })
           .limit(200);
 
@@ -60,5 +65,22 @@ export function useTransactions(): UseTransactionsResult {
     setTransactions((prev) => prev.map((t) => (t.id === tx.id ? tx : t)));
   };
 
-  return { transactions, isLoading, loadError, addTransaction, updateTransaction };
+  const deleteTransaction = async (id: string) => {
+    const prev = transactions;
+    setTransactions((p) => p.filter((t) => t.id !== id));
+
+    if (!supabase) return;
+    const { error } = await supabase
+      .from('transactions')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('anon_id', getAnonId());
+    if (error) {
+      console.error('Error deleting transaction:', error);
+      setTransactions(prev);
+      throw error;
+    }
+  };
+
+  return { transactions, isLoading, loadError, addTransaction, updateTransaction, deleteTransaction };
 }

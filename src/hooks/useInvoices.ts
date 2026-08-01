@@ -18,6 +18,7 @@ export interface Invoice {
   status: 'draft' | 'sent' | 'paid';
   created_at: string;
   due_date: string | null;
+  deleted_at?: string | null;
 }
 
 interface UseInvoicesResult {
@@ -26,6 +27,8 @@ interface UseInvoicesResult {
   loadError: string | null;
   addInvoice: (invoice: Invoice) => void;
   updateStatus: (id: string, status: Invoice['status']) => Promise<void>;
+  /** Soft-deletes an invoice (sets deleted_at) — optimistic, rolls back on failure. */
+  deleteInvoice: (id: string) => Promise<void>;
 }
 
 /**
@@ -46,6 +49,7 @@ export function useInvoices(): UseInvoicesResult {
           .from('invoices')
           .select('*')
           .eq('anon_id', getAnonId())
+          .is('deleted_at', null)
           .order('created_at', { ascending: false })
           .limit(500);
 
@@ -79,5 +83,18 @@ export function useInvoices(): UseInvoicesResult {
     }
   };
 
-  return { invoices, isLoading, loadError, addInvoice, updateStatus };
+  const deleteInvoice = async (id: string) => {
+    const prev = invoices;
+    setInvoices((p) => p.filter((inv) => inv.id !== id));
+
+    if (!supabase) return;
+    const { error } = await supabase.from('invoices').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+    if (error) {
+      console.error('Error deleting invoice:', error);
+      setInvoices(prev);
+      throw error;
+    }
+  };
+
+  return { invoices, isLoading, loadError, addInvoice, updateStatus, deleteInvoice };
 }

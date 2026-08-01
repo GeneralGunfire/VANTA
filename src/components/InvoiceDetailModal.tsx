@@ -1,4 +1,5 @@
-import { FileText, Check, Send } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { FileText, Check, Send, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Modal from './Modal';
 import type { Invoice } from '../hooks/useInvoices';
@@ -9,6 +10,7 @@ interface InvoiceDetailModalProps {
   invoice: Invoice | null;
   onClose: () => void;
   onUpdateStatus: (id: string, status: Invoice['status']) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
 }
 
 /**
@@ -16,7 +18,14 @@ interface InvoiceDetailModalProps {
  * delivery tonight (see final report). "Mark as sent" / "Mark as paid" are
  * manual status changes only; nothing is actually transmitted anywhere.
  */
-export default function InvoiceDetailModal({ invoice, onClose, onUpdateStatus }: InvoiceDetailModalProps) {
+export default function InvoiceDetailModal({ invoice, onClose, onUpdateStatus, onDelete }: InvoiceDetailModalProps) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    if (!invoice) setConfirmingDelete(false);
+  }, [invoice]);
+
   if (!invoice) return null;
 
   const handleStatusChange = async (status: Invoice['status']) => {
@@ -25,6 +34,20 @@ export default function InvoiceDetailModal({ invoice, onClose, onUpdateStatus }:
       toast.success(`Marked as ${status}`);
     } catch (err: any) {
       toast.error(err?.message ?? 'Could not update — try again.');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!onDelete) return;
+    setIsDeleting(true);
+    try {
+      await onDelete(invoice.id);
+      toast.success('Invoice deleted — restore it from Recently Deleted if needed');
+      onClose();
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Could not delete — try again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -71,25 +94,55 @@ export default function InvoiceDetailModal({ invoice, onClose, onUpdateStatus }:
           </div>
         </div>
 
-        <div className="flex justify-end gap-3">
-          {invoice.status === 'draft' && (
-            <button
-              onClick={() => handleStatusChange('sent')}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-vanta-gray hover:text-vanta-black transition-colors border border-vanta-border rounded-lg"
-            >
-              <Send size={12} />
-              Mark as sent
-            </button>
+        <div className="flex items-center justify-between gap-3">
+          {onDelete && (
+            confirmingDelete ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-vanta-gray">Delete this invoice?</span>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="text-xs font-semibold uppercase tracking-widest text-vanta-black border border-vanta-black px-3 py-1.5 rounded-lg hover:bg-vanta-black hover:text-white transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? 'Deleting…' : 'Confirm'}
+                </button>
+                <button
+                  onClick={() => setConfirmingDelete(false)}
+                  className="text-xs font-semibold uppercase tracking-widest text-vanta-gray hover:text-vanta-black transition-colors px-3 py-1.5"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmingDelete(true)}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-vanta-gray hover:text-vanta-black transition-colors border border-vanta-border rounded-lg"
+              >
+                <Trash2 size={12} />
+                Delete
+              </button>
+            )
           )}
-          {invoice.status === 'sent' && (
-            <button
-              onClick={() => handleStatusChange('paid')}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white bg-vanta-navy hover:bg-vanta-navy-dark transition-colors rounded-lg"
-            >
-              <Check size={12} />
-              Mark as paid
-            </button>
-          )}
+          <div className="flex justify-end gap-3 ml-auto">
+            {invoice.status === 'draft' && (
+              <button
+                onClick={() => handleStatusChange('sent')}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-vanta-gray hover:text-vanta-black transition-colors border border-vanta-border rounded-lg"
+              >
+                <Send size={12} />
+                Mark as sent
+              </button>
+            )}
+            {invoice.status === 'sent' && (
+              <button
+                onClick={() => handleStatusChange('paid')}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white bg-vanta-navy hover:bg-vanta-navy-dark transition-colors rounded-lg"
+              >
+                <Check size={12} />
+                Mark as paid
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </Modal>

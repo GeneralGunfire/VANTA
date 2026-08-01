@@ -1,8 +1,6 @@
-import { useState } from 'react';
-import { CalendarClock, Info } from 'lucide-react';
-import { cn } from '../lib/utils';
-
-type RegistrationStatus = 'informal' | 'registered_vat' | 'not_yet_registered';
+import { Link } from 'react-router-dom';
+import { AlertTriangle, CalendarClock, Info, Pencil } from 'lucide-react';
+import { useBusinessProfile } from '../hooks/useBusinessProfile';
 
 interface ComplianceDate {
   title: string;
@@ -52,22 +50,21 @@ const VAT_DATES: ComplianceDate[] = [
   },
 ];
 
-const REGISTRATION_OPTIONS: { value: RegistrationStatus; label: string }[] = [
-  { value: 'informal', label: 'Informal / not registered for tax' },
-  { value: 'not_yet_registered', label: 'Registered business, not yet VAT registered' },
-  { value: 'registered_vat', label: 'VAT registered' },
-];
+const REGISTRATION_LABEL: Record<string, string> = {
+  informal: 'Informal / not registered for tax',
+  not_yet_registered: 'Registered business, not yet VAT registered',
+  registered_vat: 'VAT registered',
+};
 
 /**
- * No persisted `profiles` row is read/written here yet — this app has no
- * real Supabase auth to scope a profile write to, and no profile-editing
- * UI exists elsewhere. The selector below is a local, session-only toggle
- * so the page is still useful tonight; it is NOT saved to the `profiles`
- * table added in the migration. Wiring this to a real persisted profile
- * is future work once real auth exists. See final report.
+ * Registration status now reads from the persisted `business_profile` row
+ * (see useBusinessProfile / Business Profile page) instead of a
+ * session-only local toggle. Editing happens on the Business Profile page —
+ * this page just reflects it and links there.
  */
 export default function TaxCalendarPage() {
-  const [status, setStatus] = useState<RegistrationStatus>('informal');
+  const { profile, isLoading, loadError } = useBusinessProfile();
+  const status = profile?.registration_status ?? 'informal';
   const isVatRegistered = status === 'registered_vat';
 
   return (
@@ -90,26 +87,25 @@ export default function TaxCalendarPage() {
 
         <div className="border border-vanta-border rounded-2xl bg-white p-6 space-y-3">
           <div className="text-[10px] uppercase tracking-widest font-semibold text-vanta-black">Your registration status</div>
-          <p className="text-xs text-vanta-gray">
-            Not saved yet — this app has no persisted profile editing built tonight. Selecting an option here only changes what
-            this page shows you, for this session.
-          </p>
-          <div className="flex items-center gap-1.5 bg-vanta-sidebar p-1.5 border border-vanta-border rounded-full text-xs w-fit flex-wrap">
-            {REGISTRATION_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setStatus(opt.value)}
-                className={cn(
-                  'px-4 py-2 font-medium transition-all rounded-full whitespace-nowrap',
-                  status === opt.value
-                    ? 'bg-white text-vanta-black border border-vanta-border shadow-sm'
-                    : 'text-vanta-gray hover:text-vanta-black border border-transparent',
-                )}
+          {isLoading ? (
+            <p className="text-xs text-vanta-gray italic">Loading…</p>
+          ) : loadError ? (
+            <div role="alert" className="flex items-center gap-2 text-xs text-vanta-black">
+              <AlertTriangle size={13} />
+              Couldn't load your business profile: {loadError}
+            </div>
+          ) : (
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <span className="text-sm font-medium text-vanta-black">{REGISTRATION_LABEL[status]}</span>
+              <Link
+                to="/app/business-profile"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-vanta-gray hover:text-vanta-black transition-colors px-3 py-1.5 rounded-lg border border-vanta-border hover:border-vanta-border-strong"
               >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+                <Pencil size={12} />
+                Edit in Business Profile
+              </Link>
+            </div>
+          )}
         </div>
 
         <div className="border border-vanta-border rounded-2xl overflow-hidden bg-white" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
@@ -146,7 +142,7 @@ export default function TaxCalendarPage() {
           </div>
         ) : (
           <div className="text-center py-8 text-vanta-gray text-sm px-6 border border-vanta-border rounded-2xl bg-white">
-            VAT deadlines are hidden — select "VAT registered" above to see them.
+            VAT deadlines are hidden — set your status to "VAT registered" in Business Profile to see them.
           </div>
         )}
       </div>

@@ -12,6 +12,7 @@ export interface InventoryItem {
   reorder_threshold: number | null;
   updated_at: string;
   created_at: string;
+  deleted_at?: string | null;
 }
 
 interface UseInventoryResult {
@@ -43,6 +44,7 @@ export function useInventory(): UseInventoryResult {
           .from('inventory_items')
           .select('*')
           .eq('anon_id', getAnonId())
+          .is('deleted_at', null)
           .order('item_name', { ascending: true })
           .limit(500);
 
@@ -72,7 +74,7 @@ export function useInventory(): UseInventoryResult {
     setItems((p) => p.filter((i) => i.id !== id));
 
     if (!supabase) return;
-    const { error } = await supabase.from('inventory_items').delete().eq('id', id);
+    const { error } = await supabase.from('inventory_items').update({ deleted_at: new Date().toISOString() }).eq('id', id);
     if (error) {
       console.error('Error deleting inventory item:', error);
       setItems(prev);

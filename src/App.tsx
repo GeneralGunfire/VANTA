@@ -20,6 +20,9 @@ import BusinessRecordPage from './pages/BusinessRecordPage';
 import SuppliersPage from './pages/SuppliersPage';
 import TimelinePage from './pages/TimelinePage';
 import WhatIfPage from './pages/WhatIfPage';
+import BusinessProfilePage from './pages/BusinessProfilePage';
+import RecentlyDeletedPage from './pages/RecentlyDeletedPage';
+import DataPrivacyPage from './pages/DataPrivacyPage';
 import { Toaster } from './components/ui/sonner';
 
 export default function App() {
@@ -44,6 +47,9 @@ export default function App() {
           <Route path="suppliers" element={<SuppliersPage />} />
           <Route path="timeline" element={<TimelinePage />} />
           <Route path="what-if" element={<WhatIfPage />} />
+          <Route path="business-profile" element={<BusinessProfilePage />} />
+          <Route path="recently-deleted" element={<RecentlyDeletedPage />} />
+          <Route path="data-privacy" element={<DataPrivacyPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

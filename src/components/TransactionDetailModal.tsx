@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, AlertTriangle, Calendar, Tag, ArrowUpRight, ArrowDownLeft, Pencil, Check, X } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Calendar, Tag, ArrowUpRight, ArrowDownLeft, Pencil, Check, X, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Modal from './Modal';
 import { supabase } from '../lib/supabase';
@@ -25,6 +25,8 @@ interface TransactionDetailModalProps {
   onClose: () => void;
   /** Called with the saved transaction after a correction persists, so the caller can update its local list. */
   onCorrected?: (updated: Transaction) => void;
+  /** Called after the user confirms deletion — caller owns the actual soft-delete write. */
+  onDelete?: (transaction: Transaction) => Promise<void>;
 }
 
 const CATEGORIES = ['Sales', 'Stock', 'Rent', 'Utilities', 'Transport', 'Wages', 'Other'];
@@ -53,21 +55,38 @@ async function persistCorrection(field: 'category' | 'amount' | 'description', t
   return data as Transaction;
 }
 
-export default function TransactionDetailModal({ transaction, onClose, onCorrected }: TransactionDetailModalProps) {
+export default function TransactionDetailModal({ transaction, onClose, onCorrected, onDelete }: TransactionDetailModalProps) {
   const isOpen = transaction !== null;
 
   const [editingField, setEditingField] = useState<'category' | 'amount' | 'description' | null>(null);
   const [draftValue, setDraftValue] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
       setEditingField(null);
       setDraftValue('');
+      setConfirmingDelete(false);
     }
   }, [isOpen]);
 
   if (!transaction) return null;
+
+  const handleDelete = async () => {
+    if (!onDelete) return;
+    setIsDeleting(true);
+    try {
+      await onDelete(transaction);
+      toast.success('Transaction deleted — restore it from Recently Deleted if needed');
+      onClose();
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Could not delete — try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const formattedDate = new Date(transaction.date || transaction.created_at).toLocaleDateString('en-ZA', {
     year: 'numeric',
@@ -115,12 +134,42 @@ export default function TransactionDetailModal({ transaction, onClose, onCorrect
       eyebrow="Transaction"
       title={transaction.description || 'Untitled'}
       footer={
-        <button
-          onClick={onClose}
-          className="bg-vanta-navy text-white px-5 py-2 text-xs font-semibold uppercase tracking-widest hover:bg-vanta-navy-dark transition-colors rounded-lg"
-        >
-          Done
-        </button>
+        <div className="flex items-center justify-between w-full">
+          {onDelete && (
+            confirmingDelete ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-vanta-gray">Delete this transaction?</span>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="text-xs font-semibold uppercase tracking-widest text-vanta-black border border-vanta-black px-3 py-1.5 rounded-lg hover:bg-vanta-black hover:text-white transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? 'Deleting…' : 'Confirm'}
+                </button>
+                <button
+                  onClick={() => setConfirmingDelete(false)}
+                  className="text-xs font-semibold uppercase tracking-widest text-vanta-gray hover:text-vanta-black transition-colors px-3 py-1.5"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmingDelete(true)}
+                className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-vanta-gray hover:text-vanta-black transition-colors px-3 py-2 rounded-lg border border-vanta-border hover:border-vanta-border-strong"
+              >
+                <Trash2 size={12} />
+                Delete
+              </button>
+            )
+          )}
+          <button
+            onClick={onClose}
+            className="bg-vanta-navy text-white px-5 py-2 text-xs font-semibold uppercase tracking-widest hover:bg-vanta-navy-dark transition-colors rounded-lg ml-auto"
+          >
+            Done
+          </button>
+        </div>
       }
     >
       <div className="p-6 space-y-6">
