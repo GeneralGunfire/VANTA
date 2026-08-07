@@ -5,13 +5,16 @@ import * as XLSX from 'xlsx';
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { getAnonId } from '../lib/anonId';
-import { cn } from '../lib/utils';
+import { cn, getBusinessName } from '../lib/utils';
 import { SHADOW_MD, SHADOW_SM } from '../lib/surfaces';
 import type { AppShellContext } from '../layouts/AppLayout';
 import { useTransactions } from '../hooks/useTransactions';
 import { LedgerSummary } from '../components/dashboard/LedgerSummary';
 import { ActivityFeed } from '../components/dashboard/ActivityFeed';
 import { QuickActions } from '../components/dashboard/QuickActions';
+import { StatTiles } from '../components/dashboard/StatTiles';
+import { CategoryDonut } from '../components/dashboard/CategoryDonut';
+import { CashflowBars } from '../components/dashboard/CashflowBars';
 import TransactionDetailModal, { Transaction } from '../components/TransactionDetailModal';
 
 interface ParsedTransaction {
@@ -51,6 +54,7 @@ export default function ChatPage() {
 
   const { transactions, isLoading: dashboardLoading, loadError: dashboardError } = useTransactions();
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  const businessName = getBusinessName();
 
   // Collapses the sidebar while the composer is active. Blurring restores it,
   // so the nav is always one click (or Escape) away.
@@ -255,7 +259,7 @@ export default function ChatPage() {
 
   /** Supplementary business context beside the composer — never the hero. */
   const dashboardRail = (
-    <div className="w-full lg:w-72 shrink-0 space-y-3">
+    <div className="w-full lg:w-96 shrink-0 space-y-3">
       {dashboardError && (
         <div role="alert" className="flex items-start gap-2 text-[12px] text-vanta-danger px-1 leading-snug">
           <AlertTriangle size={13} className="shrink-0 mt-0.5" />
@@ -263,6 +267,9 @@ export default function ChatPage() {
         </div>
       )}
       <LedgerSummary transactions={transactions} isLoading={dashboardLoading} />
+      <StatTiles transactions={transactions} isLoading={dashboardLoading} />
+      <CashflowBars transactions={transactions} isLoading={dashboardLoading} />
+      <CategoryDonut transactions={transactions} isLoading={dashboardLoading} />
       <ActivityFeed transactions={transactions} isLoading={dashboardLoading} onSelect={setSelectedTx} />
     </div>
   );
@@ -399,7 +406,15 @@ export default function ChatPage() {
           </motion.div>
 
           <h1 className="text-3xl md:text-4xl font-serif text-vanta-black text-center mb-3 leading-tight max-w-xl">
-            What happened in your business today?
+            {businessName ? (
+              <>
+                Hi there, <span className="text-vanta-navy">{businessName}</span>
+                <br />
+                What happened today?
+              </>
+            ) : (
+              'What happened in your business today?'
+            )}
           </h1>
           <p className="text-base text-vanta-gray text-center mb-10">
             Tell me in plain language — I'll keep the books.

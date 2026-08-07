@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Home, BookOpen, Users, CalendarClock, Package, FolderLock, TrendingUp, FileText, FileCheck, Menu, LogOut, Search } from 'lucide-react';
+import { Home, BookOpen, Users, CalendarClock, Package, FolderLock, TrendingUp, FileText, FileCheck, Menu, LogOut, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { APP_SURFACE, SHADOW_MD } from '../lib/surfaces';
@@ -8,6 +8,7 @@ import { useTransactions } from '../hooks/useTransactions';
 import { needsReviewCount } from '../lib/metrics';
 import { Badge } from '../components/ui/badge';
 import { CommandPalette, useCommandPalette } from '../components/CommandPalette';
+import logoMark from '../assets/vanta-logo-mark.jpeg';
 
 interface NavItem {
   name: string;
@@ -49,8 +50,10 @@ export default function AppLayout() {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [composerFocused, setComposerFocused] = useState(false);
-  /** Desktop only: the sidebar narrows to an icon rail while the composer is active. */
-  const collapsed = composerFocused;
+  /** A person can also pin the rail collapsed by hand, independent of composer focus. */
+  const [pinnedCollapsed, setPinnedCollapsed] = useState(false);
+  /** Desktop only: the sidebar narrows to an icon rail while the composer is active, or when pinned. */
+  const collapsed = composerFocused || pinnedCollapsed;
 
   const { transactions } = useTransactions();
   const reviewCount = needsReviewCount(transactions);
@@ -70,9 +73,7 @@ export default function AppLayout() {
       {/* Mobile Header & Menu Toggle */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 border-b border-vanta-border bg-white flex items-center justify-between px-4 z-50">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-vanta-navy text-white flex items-center justify-center font-semibold text-sm">
-            V
-          </div>
+          <img src={logoMark} alt="" className="w-7 h-7 rounded-lg object-cover" />
           <span className="text-[15px] font-semibold text-vanta-black tracking-tight">Vanta</span>
         </div>
         <button
@@ -92,7 +93,18 @@ export default function AppLayout() {
           collapsed ? 'md:w-[76px]' : 'md:w-64',
         )}
       >
-        <div className={cn('flex flex-col h-full transition-all', collapsed ? 'p-2' : 'p-3')}>
+        <div className={cn('flex flex-col h-full transition-all relative', collapsed ? 'p-2' : 'p-3')}>
+          {/* Manual collapse toggle — independent of the auto-collapse-on-composer-focus behavior */}
+          <button
+            onClick={() => setPinnedCollapsed((v) => !v)}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="hidden md:flex absolute -right-3 top-9 w-6 h-6 rounded-full bg-white border border-vanta-border items-center justify-center text-vanta-gray hover:text-vanta-navy hover:border-vanta-border-strong transition-colors z-10"
+            style={{ boxShadow: SHADOW_MD }}
+          >
+            {collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
+          </button>
+
           <div
             className="flex flex-col h-full rounded-2xl border border-vanta-border bg-white overflow-hidden"
             style={{ boxShadow: SHADOW_MD }}
@@ -100,9 +112,7 @@ export default function AppLayout() {
             {/* Brand */}
             <div className={cn('pt-5 pb-3 transition-all', collapsed ? 'px-3' : 'px-4')}>
               <div className={cn('flex items-center gap-2.5 pt-10 md:pt-0', collapsed && 'justify-center')}>
-                <div className="w-8 h-8 shrink-0 rounded-lg bg-vanta-navy text-white flex items-center justify-center font-semibold text-sm">
-                  V
-                </div>
+                <img src={logoMark} alt="" className="w-8 h-8 shrink-0 rounded-lg object-cover" />
                 {!collapsed && (
                   <span className="text-[15px] font-semibold text-vanta-black tracking-tight whitespace-nowrap">Vanta</span>
                 )}

@@ -1,0 +1,125 @@
+|-- .claude
+|-- .env
+|-- .env.example
+|-- .gitignore
+|-- .oxlintrc.json
+|-- components.json
+|-- index.html
+|-- package-lock.json
+|-- package.json
+|-- PARTNER_UI_BRIEF.md
+|-- public
+    |-- favicon.svg
+    |-- icons.svg
+|-- README.md
+|-- src
+    |-- App.tsx
+    |-- assets
+        |-- vanta-hero-desktop.jpeg
+        |-- vanta-hero-mobile.jpeg
+        |-- vanta-logo-lockup.jpeg
+        |-- vanta-logo-mark.jpeg
+    |-- components
+        |-- AddDebtModal.tsx
+        |-- AddInvoiceModal.tsx
+        |-- AddTransactionModal.tsx
+        |-- CommandPalette.tsx
+        |-- dashboard
+            |-- ActivityFeed.tsx
+            |-- CashflowBars.tsx
+            |-- CategoryDonut.tsx
+            |-- LedgerSummary.tsx
+            |-- QuickActions.tsx
+            |-- StatTiles.tsx
+        |-- InventoryItemModal.tsx
+        |-- InvoiceDetailModal.tsx
+        |-- Modal.tsx
+        |-- ScrollToTop.tsx
+        |-- TransactionDetailModal.tsx
+        |-- ui
+            |-- badge.tsx
+            |-- button.tsx
+            |-- card.tsx
+            |-- command.tsx
+            |-- dialog.tsx
+            |-- input-group.tsx
+            |-- input.tsx
+            |-- label.tsx
+            |-- separator.tsx
+            |-- skeleton.tsx
+            |-- sonner.tsx
+            |-- table.tsx
+            |-- textarea.tsx
+            |-- tooltip.tsx
+    |-- hooks
+        |-- useDebts.ts
+        |-- useDocuments.ts
+        |-- useInventory.ts
+        |-- useInvoices.ts
+        |-- useTransactions.ts
+    |-- index.css
+    |-- layouts
+        |-- AppLayout.tsx
+    |-- lib
+        |-- anonId.ts
+        |-- businessRecord.ts
+        |-- forecast.ts
+        |-- metrics.ts
+        |-- schemas
+            |-- debt.ts
+            |-- inventory.ts
+            |-- invoice.ts
+            |-- transaction.ts
+        |-- supabase.ts
+        |-- surfaces.ts
+        |-- utils.ts
+    |-- main.tsx
+    |-- pages
+        |-- AuthPage.tsx
+        |-- BusinessRecordPage.tsx
+        |-- ChatPage.tsx
+        |-- DebtorsPage.tsx
+        |-- DocumentsPage.tsx
+        |-- ForecastPage.tsx
+        |-- InventoryPage.tsx
+        |-- InvoicesPage.tsx
+        |-- LandingPage.tsx
+        |-- LedgerPage.tsx
+        |-- TaxCalendarPage.tsx
+    |-- vite-env.d.ts
+|-- supabase
+    |-- .temp
+        |-- gotrue-version
+        |-- linked-project.json
+        |-- pooler-url
+        |-- postgres-version
+        |-- project-ref
+        |-- rest-version
+        |-- storage-migration
+        |-- storage-version
+    |-- BACKEND_BUILD_PASS_REPORT.md
+    |-- functions
+        |-- generate-summary
+            |-- index.ts
+        |-- parse-transaction
+            |-- index.ts
+        |-- query-transactions
+            |-- index.ts
+        |-- record-correction
+            |-- index.ts
+        |-- _shared
+            |-- categoryRules.ts
+            |-- cors.ts
+            |-- rateLimit.ts
+    |-- migrations
+        |-- 0001_create_transactions.sql
+        |-- 0002_backend_build_pass.sql
+        |-- 0003_phase2_features.sql
+        |-- 0004_phase3_features.sql
+        |-- 0005_transactions_update_policy.sql
+|-- tsconfig.json
+|-- vite.config.ts
+|-- WhatsApp Image 2026-07-31 at 18.21.55 (1).jpeg
+|-- WhatsApp Image 2026-07-31 at 18.21.55 (2).jpeg
+|-- WhatsApp Image 2026-07-31 at 18.21.55 (3).jpeg
+|-- WhatsApp Image 2026-07-31 at 18.21.55.jpeg
