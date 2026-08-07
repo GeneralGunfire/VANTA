@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
-import { Upload, AlertTriangle, ArrowUpRight, ArrowDownLeft, RefreshCw, Send, Repeat, X, Mic, Square } from 'lucide-react';
+import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import { Upload, AlertTriangle, ArrowUpRight, ArrowDownLeft, RefreshCw, Send, Repeat, X, Mic, Square, Check, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { findLikelyRecurringMatch } from '../lib/recurringMatch';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
@@ -18,9 +18,6 @@ import { LedgerSummary } from '../components/dashboard/LedgerSummary';
 import { ActivityFeed } from '../components/dashboard/ActivityFeed';
 import { QuickActions } from '../components/dashboard/QuickActions';
 import { NudgeBar } from '../components/dashboard/NudgeBar';
-import { StatTiles } from '../components/dashboard/StatTiles';
-import { CategoryDonut } from '../components/dashboard/CategoryDonut';
-import { CashflowBars } from '../components/dashboard/CashflowBars';
 import TransactionDetailModal, { Transaction } from '../components/TransactionDetailModal';
 import vantaLogoMark from '../assets/vanta-logo-mark.jpeg';
 
@@ -76,6 +73,8 @@ export default function ChatPage() {
   const { debts } = useDebts();
   const [recurringPromptDismissed, setRecurringPromptDismissed] = useState<Record<string, boolean>>({});
   const [recurringConfirmed, setRecurringConfirmed] = useState<Record<string, boolean>>({});
+  const [reviewConfirmed, setReviewConfirmed] = useState<Record<string, boolean>>({});
+  const [confirmingReviewKey, setConfirmingReviewKey] = useState<string | null>(null);
   const { profile } = useBusinessProfile();
   const isVatRegistered = profile?.registration_status === 'registered_vat';
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
@@ -304,37 +303,90 @@ export default function ChatPage() {
     }
   };
 
+  /** "Is that right?" → yes. A real write, not just a local dismissal — the record itself stops needing review. */
+  const handleConfirmReview = async (item: ParsedTransaction, key: string) => {
+    if (!item.id || !supabase) return;
+    setConfirmingReviewKey(key);
+    try {
+      const { error } = await supabase.from('transactions').update({ needs_review: false }).eq('id', item.id);
+      if (error) throw error;
+      setReviewConfirmed((prev) => ({ ...prev, [key]: true }));
+      toast.success("Got it — marked as confirmed.");
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Could not save — try again.');
+    } finally {
+      setConfirmingReviewKey(null);
+    }
+  };
+
   const renderTransactionCards = (items: ParsedTransaction[]) => (
     <div className="mt-4 space-y-3">
       {items.map((item, idx) => {
         const cardKey = item.id ?? String(idx);
 
         if (item.needs_review) {
+          const isConfirmed = reviewConfirmed[cardKey];
           return (
-            <div
+            <motion.div
               key={item.id ?? idx}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
               className="border-l-4 border-l-vanta-black bg-white p-5 rounded-r-xl border-t border-r border-b border-vanta-border"
             >
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-[10px] font-semibold uppercase tracking-widest text-vanta-black flex items-center gap-2">
-                  <AlertTriangle size={14} />
-                  Needs review
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle size={14} className="shrink-0 text-vanta-black" />
+                <p className="text-sm font-medium text-vanta-black leading-snug">
+                  {isConfirmed ? 'Got it — marked as confirmed.' : "Vanta isn't completely sure about this one."}
+                </p>
+              </div>
+
+              {item.raw_input && (
+                <div className="mb-3">
+                  <div className="text-[10px] uppercase tracking-widest text-vanta-gray-light font-medium mb-1">You said</div>
+                  <p className="text-sm text-vanta-gray italic leading-relaxed">"{item.raw_input}"</p>
+                </div>
+              )}
+
+              <div className="mb-4">
+                <div className="text-[10px] uppercase tracking-widest text-vanta-gray-light font-medium mb-1.5">I understood</div>
+                <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+                  {item.amount !== null && (
+                    <span className="text-vanta-black">
+                      Amount <span className="font-mono font-semibold">R{item.amount.toFixed(2)}</span>
+                    </span>
+                  )}
+                  <span className="text-vanta-black">
+                    Category <span className="font-semibold">{item.category}</span>
+                  </span>
                 </div>
               </div>
-              <p className="text-sm text-vanta-black leading-relaxed mb-3">
-                {item.description || item.raw_input || 'Could not confidently parse this transaction.'}
-              </p>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-vanta-gray">
-                {item.amount !== null && (
-                  <span>
-                    Best guess: <span className="font-mono font-semibold text-vanta-black">R{item.amount.toFixed(2)}</span>
-                  </span>
-                )}
-                <span>
-                  Category: <span className="font-medium text-vanta-black">{item.category}</span>
-                </span>
-              </div>
-            </div>
+
+              {!isConfirmed ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] text-vanta-gray mr-1">Is that right?</span>
+                  <button
+                    onClick={() => handleConfirmReview(item, cardKey)}
+                    disabled={confirmingReviewKey === cardKey}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-vanta-navy px-3.5 py-2 rounded-full hover:bg-vanta-navy-dark transition-colors disabled:opacity-50"
+                  >
+                    <Check size={12} />
+                    {confirmingReviewKey === cardKey ? 'Saving…' : "Yes, that's right"}
+                  </button>
+                  <Link
+                    to="/app/ledger"
+                    className="text-xs font-medium text-vanta-gray hover:text-vanta-black transition-colors underline underline-offset-2"
+                  >
+                    Not quite — fix it
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-xs font-medium text-vanta-success">
+                  <CheckCircle2 size={13} />
+                  Confirmed
+                </div>
+              )}
+            </motion.div>
           );
         }
 
@@ -400,9 +452,9 @@ export default function ChatPage() {
 
   const isEmpty = messages.length === 1 && messages[0].id === 'welcome';
 
-  /** Supplementary business context beside the composer — never the hero. */
+  /** Supplementary business context beside the composer — never the hero, and always plain language, never a chart. */
   const dashboardRail = (
-    <div className="w-full lg:w-96 shrink-0 space-y-3">
+    <div className="w-full lg:w-72 shrink-0 space-y-3">
       {dashboardError && (
         <div role="alert" className="flex items-start gap-2 text-[12px] text-vanta-danger px-1 leading-snug">
           <AlertTriangle size={13} className="shrink-0 mt-0.5" />
@@ -411,9 +463,6 @@ export default function ChatPage() {
       )}
       <NudgeBar transactions={transactions} debts={debts} isVatRegistered={isVatRegistered} />
       <LedgerSummary transactions={transactions} isLoading={dashboardLoading} />
-      <StatTiles transactions={transactions} isLoading={dashboardLoading} />
-      <CashflowBars transactions={transactions} isLoading={dashboardLoading} />
-      <CategoryDonut transactions={transactions} isLoading={dashboardLoading} />
       <ActivityFeed transactions={transactions} isLoading={dashboardLoading} onSelect={setSelectedTx} />
     </div>
   );

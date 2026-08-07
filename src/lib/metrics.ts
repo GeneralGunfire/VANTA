@@ -62,35 +62,6 @@ export function recentActivity(transactions: Transaction[], count = 6): Transact
   return transactions.slice(0, count);
 }
 
-export interface CategoryTotal {
-  category: string;
-  total: number;
-}
-
-/**
- * Real spend by category, trailing N days — money out only (an expense
- * breakdown, the thing a "where did it go" chart is actually for). Zero-total
- * categories are dropped rather than zero-filled: an unused category isn't a
- * slice of a pie, it just doesn't exist yet for this business.
- */
-export function categoryBreakdown(transactions: Transaction[], days = 30): CategoryTotal[] {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - (days - 1));
-  cutoff.setHours(0, 0, 0, 0);
-
-  const totals = new Map<string, number>();
-  for (const t of transactions) {
-    if (t.direction !== 'out') continue;
-    if (txDate(t) < cutoff) continue;
-    const key = t.category || 'Other';
-    totals.set(key, (totals.get(key) ?? 0) + (t.amount ?? 0));
-  }
-
-  return Array.from(totals.entries())
-    .map(([category, total]) => ({ category, total }))
-    .sort((a, b) => b.total - a.total);
-}
-
 export interface DayTotals {
   /** e.g. "Mon 21" */
   label: string;
