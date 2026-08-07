@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Home, BookOpen, Users, CalendarClock, Package, FolderLock, TrendingUp, FileText, FileCheck, Truck, History, HelpCircle, Menu, LogOut, Search, Building2, Trash2, ShieldCheck } from 'lucide-react';
+import { Home, BookOpen, ScrollText, Users, CalendarClock, Package, FolderLock, TrendingUp, FileText, FileCheck, Truck, History, HelpCircle, Menu, LogOut, Search, Building2, Trash2, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { APP_SURFACE, SHADOW_MD } from '../lib/surfaces';
@@ -27,6 +27,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Core',
     items: [
       { name: 'Home', path: '/app/chat', icon: Home },
+      { name: 'Vanta Brief', path: '/app/brief', icon: ScrollText },
       { name: 'Ledger', path: '/app/ledger', icon: BookOpen },
     ],
   },

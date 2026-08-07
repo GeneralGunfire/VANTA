@@ -10,6 +10,7 @@ import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import AppLayout from './layouts/AppLayout';
 import ChatPage from './pages/ChatPage';
+import BriefPage from './pages/BriefPage';
 import LedgerPage from './pages/LedgerPage';
 import DebtorsPage from './pages/DebtorsPage';
 import TaxCalendarPage from './pages/TaxCalendarPage';
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<Navigate to="/app/chat" replace />} />
             <Route path="chat" element={<ChatPage />} />
+            <Route path="brief" element={<BriefPage />} />
             <Route path="ledger" element={<LedgerPage />} />
             <Route path="debtors" element={<DebtorsPage />} />
             <Route path="tax-calendar" element={<TaxCalendarPage />} />
