@@ -60,6 +60,17 @@ export default function LedgerPage() {
     }
   }, [location.pathname, location.state, navigate]);
 
+  // Same router-state convention as openAddModal above — lets "View transactions →"
+  // from Ask Vanta (or anywhere else) land here pre-filtered to exactly the rows
+  // that backed the answer being cited, instead of a generic link to the Ledger.
+  useEffect(() => {
+    const incoming = location.state as { search?: string; filterType?: typeof filterType } | null;
+    if (!incoming?.search && !incoming?.filterType) return;
+    if (incoming.search) setSearchQuery(incoming.search);
+    if (incoming.filterType) setFilterType(incoming.filterType);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
+
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
       const matchesSearch =

@@ -17,7 +17,7 @@ import { useBusinessProfile } from '../hooks/useBusinessProfile';
 import { LedgerSummary } from '../components/dashboard/LedgerSummary';
 import { ActivityFeed } from '../components/dashboard/ActivityFeed';
 import { QuickActions } from '../components/dashboard/QuickActions';
-import { NudgeBar } from '../components/dashboard/NudgeBar';
+import { NeedsAttention } from '../components/dashboard/NeedsAttention';
 import TransactionDetailModal, { Transaction } from '../components/TransactionDetailModal';
 import vantaLogoMark from '../assets/vanta-logo-mark.jpeg';
 
@@ -461,7 +461,7 @@ export default function ChatPage() {
           <span>Couldn't load transactions: {dashboardError}</span>
         </div>
       )}
-      <NudgeBar transactions={transactions} debts={debts} isVatRegistered={isVatRegistered} />
+      <NeedsAttention transactions={transactions} debts={debts} isVatRegistered={isVatRegistered} />
       <LedgerSummary transactions={transactions} isLoading={dashboardLoading} />
       <ActivityFeed transactions={transactions} isLoading={dashboardLoading} onSelect={setSelectedTx} />
     </div>
