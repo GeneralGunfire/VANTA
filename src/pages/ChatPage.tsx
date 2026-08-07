@@ -18,6 +18,9 @@ import { LedgerSummary } from '../components/dashboard/LedgerSummary';
 import { ActivityFeed } from '../components/dashboard/ActivityFeed';
 import { QuickActions } from '../components/dashboard/QuickActions';
 import { NudgeBar } from '../components/dashboard/NudgeBar';
+import { StatTiles } from '../components/dashboard/StatTiles';
+import { CategoryDonut } from '../components/dashboard/CategoryDonut';
+import { CashflowBars } from '../components/dashboard/CashflowBars';
 import TransactionDetailModal, { Transaction } from '../components/TransactionDetailModal';
 import vantaLogoMark from '../assets/vanta-logo-mark.jpeg';
 
@@ -399,7 +402,7 @@ export default function ChatPage() {
 
   /** Supplementary business context beside the composer — never the hero. */
   const dashboardRail = (
-    <div className="w-full lg:w-72 shrink-0 space-y-3">
+    <div className="w-full lg:w-96 shrink-0 space-y-3">
       {dashboardError && (
         <div role="alert" className="flex items-start gap-2 text-[12px] text-vanta-danger px-1 leading-snug">
           <AlertTriangle size={13} className="shrink-0 mt-0.5" />
@@ -408,6 +411,9 @@ export default function ChatPage() {
       )}
       <NudgeBar transactions={transactions} debts={debts} isVatRegistered={isVatRegistered} />
       <LedgerSummary transactions={transactions} isLoading={dashboardLoading} />
+      <StatTiles transactions={transactions} isLoading={dashboardLoading} />
+      <CashflowBars transactions={transactions} isLoading={dashboardLoading} />
+      <CategoryDonut transactions={transactions} isLoading={dashboardLoading} />
       <ActivityFeed transactions={transactions} isLoading={dashboardLoading} onSelect={setSelectedTx} />
     </div>
   );
