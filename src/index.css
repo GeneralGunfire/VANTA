@@ -7,41 +7,39 @@
   --font-serif: "Fraunces", serif;
 
   /*
-   * Design language: Linear / Stripe / Raycast-inspired fintech precision.
-   * Warm neutral surfaces, a single restrained blue accent, status colors
-   * reserved for state (never decoration). Depth comes from spacing,
-   * typography, and layered shadows — not gradients or glass.
-   *
-   * The accent blue below is sampled directly from the real brand assets
-   * (src/assets/vanta-logo-mark.jpeg, vanta-logo-lockup.jpeg) rather than
-   * picked freehand, so the in-app UI and the brand identity are the same
-   * blue family. The brand's dark-navy/gradient hero treatment lives only
-   * in marketing surfaces (Landing, Auth) via the --brand-* tokens below —
-   * the in-app product UI stays on this light, restrained ground.
+   * Design language: calm + premium + minimal + conversational + financially
+   * trustworthy. "Quiet interface, strong interaction" — restraint carries
+   * the product, not decoration. Vanta blue is an ACCENT ONLY: primary
+   * actions, active states, selected nav, links, key financial highlights.
+   * Never a giant panel or background fill. Depth comes from spacing,
+   * typography and hairline borders — shadows are near-invisible, never
+   * gradients or glass.
    */
-  --color-vanta-bg: #F7F8FA;
+  --color-vanta-bg: #F8F9FB;
+  --color-vanta-bg-muted: #F5F6F8;
   --color-vanta-panel: #FFFFFF;
   --color-vanta-black: #111827;
-  --color-vanta-gray: #6B7280;
-  --color-vanta-gray-light: #9CA3AF;
-  --color-vanta-border: rgba(17, 24, 39, 0.08);
-  --color-vanta-border-strong: rgba(17, 24, 39, 0.12);
+  --color-vanta-gray: #667085;
+  --color-vanta-gray-light: #98A2B3;
+  --color-vanta-border: #E7E9EE;
+  --color-vanta-border-strong: #D9DDE5;
 
-  --color-vanta-navy: #015AEA;
-  --color-vanta-navy-dark: #0A3FAE;
-  --color-vanta-accent-tint: #EAF2FE;
+  --color-vanta-navy: #1261E8;
+  --color-vanta-navy-dark: #0B4FC4;
+  --color-vanta-accent-tint: #EEF4FF;
 
-  --color-vanta-success: #16A34A;
-  --color-vanta-success-tint: #F0FDF4;
-  --color-vanta-warning: #D97706;
+  --color-vanta-success: #1D8A5D;
+  --color-vanta-success-tint: #F0FBF6;
+  --color-vanta-warning: #B45309;
   --color-vanta-warning-tint: #FFFBEB;
-  --color-vanta-danger: #DC2626;
-  --color-vanta-danger-tint: #FEF2F2;
+  --color-vanta-danger: #C0352C;
+  --color-vanta-danger-tint: #FDF3F2;
 
-  --color-vanta-sidebar: #FBFBFC;
+  --color-vanta-sidebar: #F5F6F8;
 
-  /* Brand marketing tokens — Landing/Auth only, sampled from the real
-     brand assets. Never used in the in-app product UI. */
+  /* Brand marketing tokens — Landing only (Auth no longer uses a brand
+     panel, see Part 2). Sampled from the real brand assets. Never used
+     in the in-app product UI. */
   --brand-navy-deep: #061F62;
   --brand-blue-bright: #0A93FD;
   --brand-blue-mid: #015AEA;
@@ -79,15 +77,65 @@
   --color-chart-1: var(--color-vanta-navy);
   --color-chart-2: var(--color-vanta-gray-light);
 
-  /* Layered shadow scale — three soft, cumulative layers, never one heavy shadow. */
-  --shadow-vanta-sm: 0 1px 2px rgba(17, 24, 39, 0.03);
-  --shadow-vanta-md: 0 1px 2px rgba(17, 24, 39, 0.03), 0 10px 30px rgba(17, 24, 39, 0.05);
-  --shadow-vanta-lg: 0 1px 2px rgba(17, 24, 39, 0.03), 0 10px 30px rgba(17, 24, 39, 0.05), 0 30px 60px rgba(17, 24, 39, 0.04);
+  /*
+   * Extremely subtle shadow scale. The interface is defined by spacing,
+   * typography and hairline borders — shadows only add the faintest lift,
+   * never an obvious "floating card" look.
+   */
+  --shadow-vanta-sm: 0 1px 2px rgba(17, 24, 39, 0.04);
+  --shadow-vanta-md: 0 1px 2px rgba(17, 24, 39, 0.04), 0 6px 16px rgba(17, 24, 39, 0.04);
+  --shadow-vanta-lg: 0 1px 2px rgba(17, 24, 39, 0.04), 0 12px 28px rgba(17, 24, 39, 0.06);
+}
+
+/*
+ * Explicit token aliases — same values as the @theme block above, exposed
+ * under the plain names used in design-system references and specs.
+ * Never diverge from the --color-vanta-* source of truth; add values in
+ * exactly one place (above) and alias them here.
+ */
+:root {
+  --background: var(--color-vanta-bg);
+  --surface: var(--color-vanta-panel);
+  --surface-muted: var(--color-vanta-bg-muted);
+  --text-primary: var(--color-vanta-black);
+  --text-secondary: var(--color-vanta-gray);
+  --text-muted: var(--color-vanta-gray-light);
+  --border: var(--color-vanta-border);
+  --border-strong: var(--color-vanta-border-strong);
+  --vanta-blue: var(--color-vanta-navy);
+  --vanta-blue-dark: var(--color-vanta-navy-dark);
+  --vanta-blue-light: var(--color-vanta-accent-tint);
+  --success: var(--color-vanta-success);
+  --warning: var(--color-vanta-warning);
+  --error: var(--color-vanta-danger);
+
+  /*
+   * Spacing rhythm — Tailwind's default scale already lands on these exact
+   * steps (space-1=4px … space-20=80px), so utility classes (p-4, gap-6,
+   * mt-16 …) are the implementation; these vars exist for reference/non-
+   * Tailwind contexts only. Always prefer the matching utility class.
+   */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
 }
 
 @layer base {
+  html {
+    overflow-x: hidden;
+  }
+
   body {
     @apply font-sans text-vanta-black bg-vanta-bg antialiased;
+    overflow-x: hidden;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

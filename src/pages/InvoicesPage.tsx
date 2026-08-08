@@ -4,6 +4,7 @@ import { useInvoices, type Invoice } from '../hooks/useInvoices';
 import AddInvoiceModal from '../components/AddInvoiceModal';
 import InvoiceDetailModal from '../components/InvoiceDetailModal';
 import { cn } from '../lib/utils';
+import { SHADOW_SM } from '../lib/surfaces';
 
 const fmt = (n: number) => `R${n.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -37,19 +38,19 @@ export default function InvoicesPage() {
       <div className="relative max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-6">
           <div>
-            <h1 className="text-2xl font-serif text-vanta-black tracking-tight">Invoices</h1>
-            <p className="text-sm text-vanta-gray mt-1">Bill customers for work or goods</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-vanta-black">Invoices</h1>
+            <p className="text-sm text-vanta-gray mt-1">Bill customers for work or goods.</p>
           </div>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="text-white px-5 py-2.5 text-xs font-semibold transition-all flex items-center gap-2 rounded-lg active:scale-[0.98] bg-vanta-navy hover:bg-vanta-navy-dark shadow-[0_6px_18px_-6px_rgba(1,90,234,0.45)] hover:shadow-[0_8px_22px_-6px_rgba(1,90,234,0.55)] hover:-translate-y-0.5"
+            className="text-white px-4 py-2.5 text-[13px] font-medium transition-colors duration-150 flex items-center gap-1.5 rounded-lg active:scale-[0.98] bg-vanta-navy hover:bg-vanta-navy-dark"
           >
-            <Plus size={16} />
-            Create invoice
+            <Plus size={15} />
+            New invoice
           </button>
         </div>
 
-        <div className="border border-vanta-border rounded-2xl overflow-hidden bg-white" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+        <div className="border border-vanta-border rounded-2xl overflow-hidden bg-white" style={{ boxShadow: SHADOW_SM }}>
           {isLoading ? (
             <div className="text-center py-16 text-vanta-gray text-sm italic">Loading…</div>
           ) : loadError ? (
@@ -60,7 +61,9 @@ export default function InvoicesPage() {
           ) : invoices.length === 0 ? (
             <div className="text-center py-20 text-vanta-gray text-sm px-6 leading-relaxed flex flex-col items-center gap-3">
               <FileText size={20} className="text-vanta-gray-light" />
-              No invoices yet — try "invoice Sipho for 3 deliveries at R150 each" in chat, or create one manually.
+              <span>
+                <span className="text-vanta-black font-medium">No invoices yet.</span> Try "invoice Sipho for 3 deliveries at R150 each" in chat, or create one manually.
+              </span>
             </div>
           ) : (
             <div className="divide-y divide-vanta-border/60">

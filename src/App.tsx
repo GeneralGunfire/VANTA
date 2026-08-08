@@ -41,7 +41,7 @@ export default function App() {
 
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<Navigate to="/app/chat" replace />} />
-            <Route path="chat" element={<ChatPage />} />
+            <Route path="chat/:conversationId?" element={<ChatPage />} />
             <Route path="brief" element={<BriefPage />} />
             <Route path="ask" element={<AskPage />} />
             <Route path="ledger" element={<LedgerPage />} />

@@ -1,6 +1,7 @@
 import { AlertTriangle, RotateCcw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRecentlyDeleted, type DeletedKind } from '../hooks/useRecentlyDeleted';
+import { SHADOW_SM } from '../lib/surfaces';
 
 const KIND_LABEL: Record<DeletedKind, string> = {
   transaction: 'Transaction',
@@ -39,11 +40,11 @@ export default function RecentlyDeletedPage() {
     <div className="relative flex-1 overflow-y-auto pt-12 px-6 md:px-12 lg:px-16 pb-32">
       <div className="relative max-w-6xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-serif text-vanta-black tracking-tight">Recently Deleted</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-vanta-black">Recently Deleted</h1>
           <p className="text-sm text-vanta-gray mt-1">Anything deleted in the last 30 days — restore it here if it was a mistake</p>
         </div>
 
-        <div className="border border-vanta-border rounded-2xl overflow-hidden bg-white" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+        <div className="border border-vanta-border rounded-2xl overflow-hidden bg-white" style={{ boxShadow: SHADOW_SM }}>
           {isLoading ? (
             <div className="text-center py-16 text-vanta-gray text-sm italic">Loading…</div>
           ) : loadError ? (

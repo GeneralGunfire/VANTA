@@ -55,7 +55,7 @@ export default function AskPage() {
           <span className="text-[11px] font-semibold uppercase tracking-[0.08em]">Ask Vanta</span>
         </div>
 
-        <h1 className="font-serif text-3xl md:text-4xl text-vanta-black leading-tight mb-3">
+        <h1 className="font-semibold text-3xl md:text-4xl text-vanta-black leading-tight mb-3">
           Ask about your business.
         </h1>
         <p className="text-vanta-gray text-base leading-relaxed mb-8">
@@ -108,7 +108,7 @@ export default function AskPage() {
                 className="pt-6 border-t border-vanta-border first:border-t-0 first:pt-0"
               >
                 <div className="text-[13px] text-vanta-gray-light mb-2">{entry.question}</div>
-                <p className="text-lg text-vanta-black leading-relaxed font-serif">{entry.result.answer}</p>
+                <p className="text-lg font-medium text-vanta-black leading-relaxed">{entry.result.answer}</p>
 
                 {entry.result.basis && (
                   <p className="text-[13px] text-vanta-gray mt-2">{entry.result.basis}</p>

@@ -6,6 +6,7 @@ import InventoryItemModal from '../components/InventoryItemModal';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
+import { SHADOW_SM } from '../lib/surfaces';
 
 const fmt = (n: number | null) => (n === null || n === undefined ? '—' : `R${n.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
 
@@ -59,21 +60,21 @@ export default function InventoryPage() {
       <div className="relative max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-6">
           <div>
-            <h1 className="text-2xl font-serif text-vanta-black tracking-tight">Inventory</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-vanta-black">Inventory</h1>
             <p className="text-sm text-vanta-gray mt-1">
               Stock you currently hold{lowStockCount > 0 ? ` — ${lowStockCount} item${lowStockCount === 1 ? '' : 's'} below reorder threshold` : ''}
             </p>
           </div>
           <button
             onClick={openAdd}
-            className="text-white px-5 py-2.5 text-xs font-semibold transition-all flex items-center gap-2 rounded-lg active:scale-[0.98] bg-vanta-navy hover:bg-vanta-navy-dark shadow-[0_6px_18px_-6px_rgba(1,90,234,0.45)] hover:shadow-[0_8px_22px_-6px_rgba(1,90,234,0.55)] hover:-translate-y-0.5"
+            className="text-white px-4 py-2.5 text-[13px] font-medium transition-colors duration-150 flex items-center gap-1.5 rounded-lg active:scale-[0.98] bg-vanta-navy hover:bg-vanta-navy-dark"
           >
-            <Plus size={16} />
+            <Plus size={15} />
             Add item
           </button>
         </div>
 
-        <div className="border border-vanta-border rounded-2xl overflow-hidden bg-white" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+        <div className="border border-vanta-border rounded-2xl overflow-hidden bg-white" style={{ boxShadow: SHADOW_SM }}>
           {isLoading ? (
             <div className="text-center py-16 text-vanta-gray text-sm italic">Loading…</div>
           ) : loadError ? (

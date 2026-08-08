@@ -2,6 +2,7 @@ import { AlertTriangle, History } from 'lucide-react';
 import { useTransactions } from '../hooks/useTransactions';
 import { useInventory } from '../hooks/useInventory';
 import { computeBusinessTimeline } from '../lib/timeline';
+import { SHADOW_SM } from '../lib/surfaces';
 
 const fmt = (n: number) => `R${Math.round(n).toLocaleString('en-ZA')}`;
 
@@ -30,7 +31,7 @@ export default function TimelinePage() {
     <div className="relative flex-1 overflow-y-auto pt-12 px-6 md:px-12 lg:px-16 pb-32">
       <div className="relative max-w-6xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-serif text-vanta-black tracking-tight">Business Timeline</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-vanta-black">Business Timeline</h1>
           <p className="text-sm text-vanta-gray mt-1">What changed, month by month, from your recorded activity</p>
         </div>
 
@@ -47,7 +48,7 @@ export default function TimelinePage() {
             Nothing recorded yet — this timeline fills in as you record transactions in chat.
           </div>
         ) : (
-          <div className="border border-vanta-border rounded-2xl overflow-hidden bg-white" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+          <div className="border border-vanta-border rounded-2xl overflow-hidden bg-white" style={{ boxShadow: SHADOW_SM }}>
             <div className="divide-y divide-vanta-border/60">
               {months.map((m) => {
                 const revChange = changeLabel(m.revenueChangePct, m.comparisonIsConsecutiveMonth);

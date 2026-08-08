@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
-import { Upload, AlertTriangle, ArrowUpRight, ArrowDownLeft, RefreshCw, Send, Repeat, X, Mic, Square, Check, CheckCircle2 } from 'lucide-react';
+import { Link, useLocation, useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import { Upload, AlertTriangle, ArrowRight, ArrowUpRight, ArrowDownLeft, Send, Repeat, X, Mic, Square, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { findLikelyRecurringMatch } from '../lib/recurringMatch';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
@@ -9,17 +9,14 @@ import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { getAnonId } from '../lib/anonId';
 import { cn } from '../lib/utils';
-import { SHADOW_MD, SHADOW_SM } from '../lib/surfaces';
+import { SHADOW_MD } from '../lib/surfaces';
 import type { AppShellContext } from '../layouts/AppLayout';
 import { useTransactions } from '../hooks/useTransactions';
-import { useDebts } from '../hooks/useDebts';
-import { useBusinessProfile } from '../hooks/useBusinessProfile';
-import { LedgerSummary } from '../components/dashboard/LedgerSummary';
-import { ActivityFeed } from '../components/dashboard/ActivityFeed';
+import { useConversations } from '../hooks/useConversations';
+import { weeklyTotals } from '../lib/brief';
 import { QuickActions } from '../components/dashboard/QuickActions';
-import { NeedsAttention } from '../components/dashboard/NeedsAttention';
 import TransactionDetailModal, { Transaction } from '../components/TransactionDetailModal';
-import vantaLogoMark from '../assets/vanta-logo-mark.jpeg';
+import { VantaLogo } from '../components/VantaLogo';
 
 interface ParsedTransaction {
   id?: string;
@@ -48,18 +45,7 @@ const WELCOME: Message = {
   timestamp: '',
 };
 
-/**
- * Prompt cards shown on the empty-state hero — same examples as
- * QuickActions (kept in one place there for the active-conversation
- * view), but rendered as cards here to match the reference template's
- * greeting + prompt-card grid.
- */
-const QUICK_PROMPT_CARDS = [
-  { label: 'Record a sale', example: 'sold 20 loaves, R400 cash' },
-  { label: 'Record an expense', example: 'bought flour for R180' },
-  { label: 'Log a deposit', example: 'deposited R2,000 cash at the bank' },
-  { label: 'Ask about the week', example: "how's business this week?" },
-];
+const COMPOSER_MAX_HEIGHT = 160;
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([WELCOME]);
@@ -67,16 +53,24 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const composerRef = useRef<HTMLInputElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
 
-  const { transactions, isLoading: dashboardLoading, loadError: dashboardError, deleteTransaction } = useTransactions();
-  const { debts } = useDebts();
+  const { transactions, isLoading: dashboardLoading, deleteTransaction } = useTransactions();
+  const params = useParams<{ conversationId?: string }>();
+  const { createConversation, saveConversation, loadConversation } = useConversations();
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(params.conversationId ?? null);
+  const hydratingRef = useRef(false);
+  const lastHydratedIdRef = useRef<string | null>(null);
+  const creatingRef = useRef(false);
+  const messagesRef = useRef(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
   const [recurringPromptDismissed, setRecurringPromptDismissed] = useState<Record<string, boolean>>({});
   const [recurringConfirmed, setRecurringConfirmed] = useState<Record<string, boolean>>({});
   const [reviewConfirmed, setReviewConfirmed] = useState<Record<string, boolean>>({});
   const [confirmingReviewKey, setConfirmingReviewKey] = useState<string | null>(null);
-  const { profile } = useBusinessProfile();
-  const isVatRegistered = profile?.registration_status === 'registered_vat';
+  const [undoneKeys, setUndoneKeys] = useState<Record<string, boolean>>({});
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const recorder = useAudioRecorder();
   const [micError, setMicError] = useState<string | null>(null);
@@ -88,6 +82,15 @@ export default function ChatPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Grows the composer naturally as the owner types, capped so a long
+  // paste never turns it into most of the screen.
+  useEffect(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, COMPOSER_MAX_HEIGHT)}px`;
+  }, [input]);
 
   // Leaving focus mode should never require hunting for somewhere safe to click.
   useEffect(() => {
@@ -124,6 +127,65 @@ export default function ChatPage() {
     composerRef.current?.focus();
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate]);
+
+  // Loads a past conversation when the URL names one (clicked from
+  // Recents), or resets to a fresh chat when it doesn't (e.g. clicking
+  // Home again). Skipped when the id already matches what's loaded — true
+  // right after this same page creates a conversation and updates its own
+  // URL, so that doesn't trigger a redundant refetch.
+  useEffect(() => {
+    const id = params.conversationId ?? null;
+    if (id === lastHydratedIdRef.current) return;
+    lastHydratedIdRef.current = id;
+    setActiveConversationId(id);
+
+    if (!id) {
+      setMessages([WELCOME]);
+      return;
+    }
+
+    let cancelled = false;
+    hydratingRef.current = true;
+    loadConversation(id).then((loaded) => {
+      if (cancelled) return;
+      setMessages((loaded && loaded.length > 0 ? (loaded as Message[]) : [WELCOME]));
+      hydratingRef.current = false;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [params.conversationId, loadConversation]);
+
+  // Persists the thread after every real exchange — a conversation is
+  // created lazily on the first exchange (never on the empty welcome
+  // state), then just updated in place after that. Skipped while a past
+  // conversation is still being loaded, so hydration never re-saves
+  // what it just read.
+  useEffect(() => {
+    if (hydratingRef.current) return;
+    if (messages.length <= 1) return;
+
+    if (!activeConversationId) {
+      // The assistant's reply can land before this resolves — without this
+      // guard, that second messages change would fire a second create and
+      // produce two rows for one conversation.
+      if (creatingRef.current) return;
+      creatingRef.current = true;
+      const firstUserMsg = messages.find((m) => m.role === 'user');
+      const title = (firstUserMsg?.content ?? 'New conversation').slice(0, 60);
+      createConversation(title, messages).then((id) => {
+        lastHydratedIdRef.current = id;
+        setActiveConversationId(id);
+        navigate(`/app/chat/${id}`, { replace: true });
+        // Catches up on any reply that arrived while the create request
+        // was in flight — messagesRef always holds the latest value, so
+        // this is a no-op write if nothing changed since `messages` above.
+        if (messagesRef.current !== messages) saveConversation(id, messagesRef.current);
+      });
+    } else {
+      saveConversation(activeConversationId, messages);
+    }
+  }, [messages]);
 
   function addMessage(msg: DistributiveOmit<Message, 'id' | 'timestamp'> & { id?: string }) {
     const timeStr = new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
@@ -163,36 +225,48 @@ export default function ChatPage() {
 
       if (error) throw error;
 
-      const transactions: ParsedTransaction[] = Array.isArray(data?.transactions) ? data.transactions : [];
+      const parsedTransactions: ParsedTransaction[] = Array.isArray(data?.transactions) ? data.transactions : [];
 
-      if (transactions.length === 0) {
+      if (parsedTransactions.length === 0) {
         addMessage({ role: 'error', content: "Something went wrong — no transaction came back from that. Try rephrasing it." });
       } else {
         addMessage({
           role: 'assistant',
           content:
-            transactions.length === 1
-              ? "Here's what I understood:"
-              : `I found ${transactions.length} separate transactions in that — here's what I understood:`,
-          transactions,
+            parsedTransactions.length === 1
+              ? "Got it — here's what I recorded."
+              : `Got it — I found ${parsedTransactions.length} separate transactions in that.`,
+          transactions: parsedTransactions,
         });
       }
     } catch (err: any) {
       console.error('Error parsing transaction:', err);
       // Honest failure — never invent a transaction to show in its place.
-      addMessage({ role: 'error', content: `Couldn't parse that: ${err?.message ?? String(err)}` });
+      addMessage({ role: 'error', content: `I couldn't make sense of that: ${err?.message ?? String(err)}` });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitCurrentInput = async () => {
     if (!input.trim() || isLoading) return;
-
     const currentQuery = input;
     setInput('');
     await submitToParser(currentQuery, 'text', currentQuery);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitCurrentInput();
+  };
+
+  // Enter sends; Shift+Enter inserts a newline, same convention as every
+  // chat composer — only meaningful now that the field can grow past one line.
+  const handleComposerKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      submitCurrentInput();
+    }
   };
 
   const MAX_EXCEL_ROWS = 50;
@@ -319,8 +393,20 @@ export default function ChatPage() {
     }
   };
 
+  /** Undo reuses the same soft-delete every other "remove this entry" control in the app already calls — nothing new on the backend. */
+  const handleUndo = async (item: ParsedTransaction, key: string) => {
+    if (!item.id) return;
+    try {
+      await deleteTransaction(item.id);
+      setUndoneKeys((prev) => ({ ...prev, [key]: true }));
+      toast.success('Removed');
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Could not undo — try again.');
+    }
+  };
+
   const renderTransactionCards = (items: ParsedTransaction[]) => (
-    <div className="mt-4 space-y-3">
+    <div className="mt-3 space-y-3">
       {items.map((item, idx) => {
         const cardKey = item.id ?? String(idx);
 
@@ -328,65 +414,55 @@ export default function ChatPage() {
           const isConfirmed = reviewConfirmed[cardKey];
           return (
             <motion.div
-              key={item.id ?? idx}
-              initial={{ opacity: 0, y: 6 }}
+              key={cardKey}
+              initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25 }}
-              className="border-l-4 border-l-vanta-black bg-white p-5 rounded-r-xl border-t border-r border-b border-vanta-border"
+              transition={{ duration: 0.18 }}
+              className="border-t border-vanta-border pt-3 space-y-2.5"
             >
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle size={14} className="shrink-0 text-vanta-black" />
-                <p className="text-sm font-medium text-vanta-black leading-snug">
-                  {isConfirmed ? 'Got it — marked as confirmed.' : "Vanta isn't completely sure about this one."}
-                </p>
-              </div>
+              <p className="text-[13px] font-medium text-vanta-black flex items-center gap-1.5">
+                <AlertTriangle size={13} className="shrink-0 text-vanta-warning" />
+                {isConfirmed ? 'Confirmed.' : "I'm not fully sure about this one."}
+              </p>
 
-              {item.raw_input && (
-                <div className="mb-3">
-                  <div className="text-[10px] uppercase tracking-widest text-vanta-gray-light font-medium mb-1">You said</div>
-                  <p className="text-sm text-vanta-gray italic leading-relaxed">"{item.raw_input}"</p>
-                </div>
-              )}
-
-              <div className="mb-4">
-                <div className="text-[10px] uppercase tracking-widest text-vanta-gray-light font-medium mb-1.5">I understood</div>
-                <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
-                  {item.amount !== null && (
-                    <span className="text-vanta-black">
-                      Amount <span className="font-mono font-semibold">R{item.amount.toFixed(2)}</span>
-                    </span>
-                  )}
+              <div className="flex flex-wrap gap-x-5 gap-y-1 text-[14px]">
+                {item.amount !== null && (
                   <span className="text-vanta-black">
-                    Category <span className="font-semibold">{item.category}</span>
+                    Best guess <span className="font-mono font-medium">R{item.amount.toFixed(2)}</span>
                   </span>
-                </div>
+                )}
+                <span className="text-vanta-black">
+                  Category <span className="font-medium">{item.category}</span>
+                </span>
               </div>
 
               {!isConfirmed ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] text-vanta-gray mr-1">Is that right?</span>
+                <div className="flex items-center gap-4 pt-0.5">
+                  <span className="text-[13px] text-vanta-gray">Is that right?</span>
                   <button
                     onClick={() => handleConfirmReview(item, cardKey)}
                     disabled={confirmingReviewKey === cardKey}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-vanta-navy px-3.5 py-2 rounded-full hover:bg-vanta-navy-dark transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-1 text-[13px] font-medium text-vanta-navy hover:text-vanta-navy-dark transition-colors disabled:opacity-50"
                   >
-                    <Check size={12} />
-                    {confirmingReviewKey === cardKey ? 'Saving…' : "Yes, that's right"}
+                    <Check size={13} />
+                    {confirmingReviewKey === cardKey ? 'Saving…' : 'Yes'}
                   </button>
-                  <Link
-                    to="/app/ledger"
-                    className="text-xs font-medium text-vanta-gray hover:text-vanta-black transition-colors underline underline-offset-2"
-                  >
-                    Not quite — fix it
+                  <Link to="/app/ledger" className="text-[13px] font-medium text-vanta-gray hover:text-vanta-black transition-colors">
+                    Fix it
                   </Link>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 text-xs font-medium text-vanta-success">
-                  <CheckCircle2 size={13} />
-                  Confirmed
-                </div>
+                <div className="text-[13px] text-vanta-success font-medium">Confirmed</div>
               )}
             </motion.div>
+          );
+        }
+
+        if (undoneKeys[cardKey]) {
+          return (
+            <div key={cardKey} className="border-t border-vanta-border pt-3 text-[13px] text-vanta-gray-light italic">
+              Removed.
+            </div>
           );
         }
 
@@ -395,51 +471,51 @@ export default function ChatPage() {
           : null;
 
         return (
-          <div
-            key={item.id ?? idx}
-            className="border-l-2 border-l-vanta-navy bg-white p-6 border-t border-r border-b border-vanta-border rounded-r-xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.06)] space-y-4"
-          >
-            <div className="flex justify-between items-start gap-4">
-              <div>
-                <div className="text-[10px] uppercase tracking-widest text-vanta-gray mb-1 font-semibold">Category</div>
-                <div className="text-lg font-serif text-vanta-black">{item.category}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-[10px] uppercase tracking-widest text-vanta-gray mb-1 font-semibold">Amount</div>
-                <div className="text-xl font-mono font-semibold text-vanta-black flex items-center gap-1 justify-end">
-                  {item.direction === 'in' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
-                  R{(item.amount ?? 0).toFixed(2)}
-                </div>
-              </div>
+          <div key={cardKey} className="border-t border-vanta-border pt-3 space-y-2.5">
+            <div className="flex items-baseline justify-between gap-4">
+              <span className="text-[14px] text-vanta-black">{item.category}</span>
+              <span className="font-mono text-[14px] font-medium text-vanta-black flex items-center gap-1 shrink-0">
+                {item.direction === 'in' ? <ArrowDownLeft size={13} className="text-vanta-success" /> : <ArrowUpRight size={13} className="text-vanta-gray" />}
+                {item.direction === 'in' ? '+' : '-'}R{(item.amount ?? 0).toFixed(2)}
+              </span>
             </div>
-            {item.description && <p className="text-sm text-vanta-gray">{item.description}</p>}
+            {item.description && <p className="text-[13px] text-vanta-gray">{item.description}</p>}
+
+            <div className="flex items-center gap-4 pt-0.5">
+              <button onClick={() => handleUndo(item, cardKey)} className="text-[13px] font-medium text-vanta-gray hover:text-vanta-black transition-colors">
+                Undo
+              </button>
+              <Link to="/app/ledger" className="text-[13px] font-medium text-vanta-navy hover:text-vanta-navy-dark transition-colors">
+                View entry
+              </Link>
+            </div>
 
             {recurringConfirmed[cardKey] && (
-              <div className="flex items-center gap-1.5 text-xs text-vanta-gray pt-3 border-t border-vanta-border">
-                <Repeat size={12} />
+              <div className="flex items-center gap-1.5 text-[12px] text-vanta-gray-light">
+                <Repeat size={11} />
                 Marked as recurring
               </div>
             )}
 
             {recurringMatch && (
-              <div className="flex items-center justify-between gap-3 pt-3 border-t border-vanta-border">
-                <span className="text-xs text-vanta-gray leading-snug flex items-center gap-1.5">
-                  <Repeat size={12} className="shrink-0" />
-                  This looks similar to "{recurringMatch.description || recurringMatch.raw_input}" from last time — mark as recurring?
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <span className="text-[12px] text-vanta-gray-light leading-snug flex items-center gap-1.5">
+                  <Repeat size={11} className="shrink-0" />
+                  Looks like "{recurringMatch.description || recurringMatch.raw_input}" — mark as recurring?
                 </span>
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => handleMarkRecurring(item, cardKey)}
-                    className="text-xs font-semibold uppercase tracking-widest text-vanta-navy hover:text-vanta-navy-dark px-2 py-1"
+                    className="text-[12px] font-medium text-vanta-navy hover:text-vanta-navy-dark"
                   >
                     Yes
                   </button>
                   <button
                     onClick={() => setRecurringPromptDismissed((prev) => ({ ...prev, [cardKey]: true }))}
                     aria-label="Dismiss"
-                    className="p-1 text-vanta-gray hover:text-vanta-black"
+                    className="p-0.5 text-vanta-gray-light hover:text-vanta-gray"
                   >
-                    <X size={13} />
+                    <X size={12} />
                   </button>
                 </div>
               </div>
@@ -452,22 +528,19 @@ export default function ChatPage() {
 
   const isEmpty = messages.length === 1 && messages[0].id === 'welcome';
 
-  /** Supplementary business context beside the composer — never the hero, and always plain language, never a chart. */
-  const dashboardRail = (
-    <div className="w-full lg:w-72 shrink-0 space-y-3">
-      {dashboardError && (
-        <div role="alert" className="flex items-start gap-2 text-[12px] text-vanta-danger px-1 leading-snug">
-          <AlertTriangle size={13} className="shrink-0 mt-0.5" />
-          <span>Couldn't load transactions: {dashboardError}</span>
-        </div>
-      )}
-      <NeedsAttention transactions={transactions} debts={debts} isVatRegistered={isVatRegistered} />
-      <LedgerSummary transactions={transactions} isLoading={dashboardLoading} />
-      <ActivityFeed transactions={transactions} isLoading={dashboardLoading} onSelect={setSelectedTx} />
-    </div>
-  );
+  // One real sentence, not a stat — a teaser toward the full Vanta Brief,
+  // never a duplicate of it. Says nothing at all rather than a hollow "R0"
+  // line when there's no confirmed activity yet this month.
+  const glanceMonth = weeklyTotals(transactions, 30);
+  const glanceLine = !glanceMonth.hasActivity
+    ? null
+    : glanceMonth.net > 0
+      ? `You made R${Math.round(glanceMonth.net).toLocaleString('en-ZA')} more than you spent this month.`
+      : glanceMonth.net < 0
+        ? `You spent R${Math.round(Math.abs(glanceMonth.net)).toLocaleString('en-ZA')} more than you made this month.`
+        : "You've broken even this month — money in matched money out.";
 
-  const inputBar = (
+  const composer = (
     <form onSubmit={handleSubmit} className="group relative">
       <input
         type="file"
@@ -482,14 +555,15 @@ export default function ChatPage() {
       />
 
       <div
-        className="relative flex items-center rounded-2xl border border-vanta-border bg-white transition-shadow duration-150 group-focus-within:border-vanta-navy/40 group-focus-within:ring-4 group-focus-within:ring-vanta-navy/8"
+        className="rounded-[20px] border border-vanta-border bg-white transition-colors duration-150 group-focus-within:border-vanta-navy/40"
         style={{ boxShadow: SHADOW_MD }}
       >
-        <input
+        <textarea
           ref={composerRef}
-          type="text"
+          rows={1}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleComposerKeyDown}
           onFocus={() => setComposerFocused(true)}
           onBlur={() => setComposerFocused(false)}
           placeholder={
@@ -497,128 +571,115 @@ export default function ChatPage() {
               ? 'Recording… tap the mic again to stop'
               : recorder.status === 'transcribing'
                 ? 'Transcribing…'
-                : 'Tell me what happened…'
+                : 'Tell Vanta what happened…'
           }
           disabled={recorder.status === 'transcribing'}
-          className="w-full bg-transparent pl-5 py-4.5 pr-28 text-vanta-black placeholder-vanta-gray-light focus:outline-none text-[15px] disabled:cursor-wait"
+          className="w-full resize-none bg-transparent px-5 pt-4 pb-1 text-vanta-black placeholder-vanta-gray-light focus:outline-none text-[15px] leading-relaxed disabled:cursor-wait"
         />
-        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            title="Attach an Excel or CSV file"
-            className="p-2 text-vanta-gray hover:text-vanta-black transition-colors duration-150 rounded-lg hover:bg-muted"
-          >
-            <Upload size={16} />
-          </button>
-          {recorder.isSupported && (
+        <div className="flex items-center justify-between px-3 pb-2.5 pt-1">
+          <div className="flex items-center gap-0.5">
             <button
               type="button"
-              onClick={handleMicClick}
-              disabled={recorder.status === 'transcribing'}
-              title={recorder.status === 'recording' ? 'Stop recording' : 'Record a voice message'}
-              className={cn(
-                'p-2 rounded-lg transition-colors duration-150 disabled:opacity-40',
-                recorder.status === 'recording'
-                  ? 'text-white bg-vanta-navy hover:bg-vanta-navy-dark animate-pulse'
-                  : 'text-vanta-gray hover:text-vanta-black hover:bg-muted',
-              )}
+              onClick={() => fileInputRef.current?.click()}
+              title="Attach an Excel or CSV file"
+              className="p-2 text-vanta-gray-light hover:text-vanta-black transition-colors duration-150 rounded-lg hover:bg-muted"
             >
-              {recorder.status === 'recording' ? <Square size={16} /> : <Mic size={16} />}
+              <Upload size={16} />
             </button>
-          )}
-          <button
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            title="Send"
-            className="w-8 h-8 rounded-full bg-vanta-navy text-white flex items-center justify-center transition-all duration-150 disabled:opacity-30 hover:bg-vanta-navy-dark active:scale-[0.95]"
-          >
-            <Send size={14} />
-          </button>
+            {recorder.isSupported && (
+              <button
+                type="button"
+                onClick={handleMicClick}
+                disabled={recorder.status === 'transcribing'}
+                title={recorder.status === 'recording' ? 'Stop recording' : 'Record a voice message'}
+                className={cn(
+                  'p-2 rounded-lg transition-colors duration-150 disabled:opacity-40',
+                  recorder.status === 'recording'
+                    ? 'text-vanta-navy bg-vanta-accent-tint'
+                    : 'text-vanta-gray-light hover:text-vanta-black hover:bg-muted',
+                )}
+              >
+                {recorder.status === 'recording' ? <Square size={15} /> : <Mic size={16} />}
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {!input && (
+              <span className="text-[11px] font-mono text-vanta-gray-light hidden sm:inline-block">Enter to send</span>
+            )}
+            <button
+              type="submit"
+              disabled={!input.trim() || isLoading}
+              title="Send"
+              className="w-8 h-8 rounded-full bg-vanta-navy text-white flex items-center justify-center transition-all duration-150 disabled:opacity-30 hover:bg-vanta-navy-dark active:scale-95"
+            >
+              <Send size={14} />
+            </button>
+          </div>
         </div>
-        {!input && (
-          <span className="absolute right-28 top-1/2 -translate-y-1/2 text-[11px] font-mono text-vanta-gray-light bg-muted border border-vanta-border rounded px-1.5 py-0.5 pointer-events-none hidden sm:inline-block">
-            Enter
-          </span>
-        )}
       </div>
     </form>
   );
 
   if (isEmpty) {
     return (
-      <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+      <div className="flex-1 flex flex-col h-full relative overflow-y-auto overflow-x-hidden">
         <TransactionDetailModal
           transaction={selectedTx}
           onClose={() => setSelectedTx(null)}
           onDelete={(tx) => deleteTransaction(tx.id)}
         />
 
-        {/*
-          Matches the reference template exactly: a plain light canvas
-          throughout (never a dark/gradient background — that reads worse
-          for a bookkeeping app where the Ledger and every data table need
-          to stay legible on the same ground), with the brand gradient
-          applied only to the accent word inside the heading, the same way
-          the reference gradients just "John" inside "Hi there, John."
-        */}
-        <div className="relative flex-1 flex flex-col items-center justify-center px-6 py-16">
-          <div className="w-full max-w-2xl flex flex-col items-center text-center">
+        {/* A calm, spacious canvas — no dashboard tiles, no charts, nothing to
+            read before the owner has said anything. The composer is the point. */}
+        <div className="relative flex-1 flex flex-col items-center justify-center px-6 py-16 min-h-full">
+          <div className="w-full max-w-170 flex flex-col items-center text-center">
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 bg-white p-2.5"
-              style={{ boxShadow: SHADOW_MD }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+              className="mb-6"
             >
-              <img src={vantaLogoMark} alt="" className="w-full h-full object-contain" />
+              <VantaLogo size={40} />
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.05 }}>
-              <h1 className="text-[34px] md:text-[42px] font-semibold leading-[1.15] mb-3 text-wrap-balance">
-                <span className="text-vanta-black">What happened in your </span>
-                <span
-                  className="bg-clip-text text-transparent"
-                  style={{ backgroundImage: `linear-gradient(90deg, ${'#015AEA'}, ${'#0A93FD'})` }}
-                >
-                  business
-                </span>
-                <span className="text-vanta-black"> today?</span>
+            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.04 }}>
+              <h1 className="text-[36px] md:text-[44px] font-semibold leading-[1.15] mb-3 text-vanta-black text-balance">
+                What happened in your business today?
               </h1>
-              <p className="text-[15px] text-vanta-gray mb-8">
-                Use one of the examples below, or tell me in your own words.
+              <p className="text-[15px] text-vanta-gray mb-9">
+                Tell Vanta what happened and I'll take care of the books.
               </p>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.12 }}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5 w-full"
-            >
-              {QUICK_PROMPT_CARDS.map((card) => (
-                <motion.button
-                  key={card.label}
-                  onClick={() => handleQuickPrompt(card.example)}
-                  whileHover={{ y: -3 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex flex-col items-center text-center gap-1.5 p-5 rounded-2xl border border-vanta-border bg-white hover:border-vanta-navy/30 hover:bg-accent transition-colors duration-150"
-                  style={{ boxShadow: SHADOW_SM }}
-                >
-                  <div className="text-[13px] font-medium text-vanta-black">{card.label}</div>
-                  <div className="text-[12px] font-mono text-vanta-gray-light">{card.example}</div>
-                </motion.button>
-              ))}
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.1 }} className="w-full">
+              {composer}
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-              className="w-full"
-            >
-              {inputBar}
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.16 }} className="w-full mt-5 flex flex-col items-center gap-2">
+              <span className="text-[11px] uppercase tracking-[0.08em] text-vanta-gray-light font-medium">Try</span>
+              <QuickActions onSelect={handleQuickPrompt} />
             </motion.div>
+
+            {glanceLine && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.24 }}
+                className="mt-9"
+              >
+                <div className="text-[11px] uppercase tracking-[0.08em] text-vanta-gray-light font-medium mb-2">
+                  Your business at a glance
+                </div>
+                <Link
+                  to="/app/brief"
+                  className="group inline-flex items-center gap-2 text-vanta-black hover:text-vanta-navy transition-colors"
+                >
+                  <span className="text-[15px] leading-relaxed">{glanceLine}</span>
+                  <ArrowRight size={14} className="shrink-0 text-vanta-gray-light group-hover:text-vanta-navy group-hover:translate-x-0.5 transition-all" />
+                </Link>
+              </motion.div>
+            )}
           </div>
         </div>
       </div>
@@ -627,74 +688,59 @@ export default function ChatPage() {
 
   return (
     <div className="flex-1 flex flex-col h-full relative overflow-hidden">
-      <TransactionDetailModal transaction={selectedTx} onClose={() => setSelectedTx(null)} />
-      <div className="relative flex-1 overflow-y-auto px-6 md:px-12 pt-8 pb-40">
-        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8">
-        <div className="flex-1 min-w-0 space-y-6">
+      <TransactionDetailModal transaction={selectedTx} onClose={() => setSelectedTx(null)} onDelete={(tx) => deleteTransaction(tx.id)} />
+      <div className="relative flex-1 overflow-y-auto px-6 pt-8 pb-44">
+        <div className="max-w-2xl mx-auto space-y-7">
           {messages.map((msg) => (
             <motion.div
               key={msg.id}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
-              className={cn('flex flex-col', msg.role === 'user' ? 'items-end' : 'items-start')}
+              transition={{ duration: 0.18 }}
+              className={cn('flex flex-col gap-1', msg.role === 'user' ? 'items-end' : 'items-start')}
             >
               {msg.role === 'user' && (
-                <div className="text-white p-4 rounded-2xl rounded-br-md max-w-xl bg-vanta-navy" style={{ boxShadow: SHADOW_SM }}>
-                  {msg.content}
-                </div>
+                <>
+                  <span className="text-[11px] font-medium text-vanta-gray-light">You</span>
+                  <p className="text-[15px] text-vanta-black leading-relaxed max-w-xl text-right">{msg.content}</p>
+                </>
               )}
 
               {msg.role === 'error' && (
-                <div className="flex gap-4 max-w-2xl w-full">
-                  <div className="w-9 h-9 rounded-lg bg-white border-2 border-vanta-black text-vanta-black shrink-0 flex items-center justify-center font-serif font-semibold text-sm">
-                    !
-                  </div>
-                  <div className="flex-1 bg-white p-5 border-2 border-vanta-black rounded-2xl rounded-tl-md text-vanta-black text-sm">
+                <div className="w-full max-w-xl">
+                  <span className="text-[11px] font-medium text-vanta-gray-light">Vanta</span>
+                  <p className="text-[15px] text-vanta-black leading-relaxed mt-1 flex items-start gap-1.5">
+                    <AlertTriangle size={14} className="shrink-0 mt-0.5 text-vanta-warning" />
                     {msg.content}
-                  </div>
+                  </p>
                 </div>
               )}
 
               {msg.role === 'assistant' && (
-                <div className="flex gap-4 max-w-2xl w-full">
-                  <div className="w-9 h-9 rounded-lg text-white shrink-0 flex items-center justify-center font-serif font-semibold text-sm bg-vanta-navy" style={{ boxShadow: SHADOW_SM }}>
-                    V
-                  </div>
-                  <div className="flex-1 bg-white p-5 border border-vanta-border rounded-2xl rounded-tl-md">
-                    <div className="text-vanta-black text-sm leading-relaxed">{msg.content}</div>
-                    {msg.transactions && renderTransactionCards(msg.transactions)}
-                  </div>
+                <div className="w-full max-w-xl">
+                  <span className="text-[11px] font-medium text-vanta-gray-light">Vanta</span>
+                  <p className="text-[15px] text-vanta-black leading-relaxed mt-1">{msg.content}</p>
+                  {msg.transactions && renderTransactionCards(msg.transactions)}
                 </div>
               )}
             </motion.div>
           ))}
 
           {isLoading && (
-            <div className="flex gap-4 max-w-2xl">
-              <div className="w-9 h-9 rounded-lg text-white shrink-0 flex items-center justify-center animate-pulse bg-vanta-navy" style={{ boxShadow: SHADOW_SM }}>
-                <RefreshCw size={15} className="animate-spin" />
-              </div>
-              <div className="flex-1 bg-white p-4 border border-vanta-border rounded-2xl rounded-tl-md text-vanta-gray text-sm italic flex items-center">
-                Thinking…
-              </div>
+            <div className="flex items-center gap-2 text-[13px] text-vanta-gray-light">
+              <Loader2 size={13} className="animate-spin" />
+              Thinking…
             </div>
           )}
 
           <div ref={messagesEndRef} />
         </div>
-
-        <div className="hidden lg:block">{dashboardRail}</div>
-        </div>
       </div>
 
       <div className="absolute bottom-6 left-6 right-6 z-30">
-        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8">
-          <div className="flex-1 min-w-0 space-y-3">
-            {inputBar}
-            <QuickActions onSelect={handleQuickPrompt} />
-          </div>
-          <div className="hidden lg:block w-80 shrink-0" aria-hidden="true" />
+        <div className="max-w-2xl mx-auto space-y-2.5">
+          {composer}
+          <QuickActions onSelect={handleQuickPrompt} />
         </div>
       </div>
     </div>

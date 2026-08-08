@@ -5,6 +5,7 @@ import { useDebts } from '../hooks/useDebts';
 import { computeWhatIf } from '../lib/whatIf';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { SHADOW_SM } from '../lib/surfaces';
 
 const fmt = (n: number) => `R${Math.round(Math.abs(n)).toLocaleString('en-ZA')}`;
 
@@ -36,7 +37,7 @@ export default function WhatIfPage() {
     <div className="relative flex-1 overflow-y-auto pt-12 px-6 md:px-12 lg:px-16 pb-32">
       <div className="relative max-w-6xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-serif text-vanta-black tracking-tight">What If</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-vanta-black">What If</h1>
           <p className="text-sm text-vanta-gray mt-1">A simple estimate for a hypothetical change, based on your recent average</p>
         </div>
 
@@ -56,7 +57,7 @@ export default function WhatIfPage() {
           <div className="space-y-6">
             <div
               className="border border-vanta-border rounded-2xl bg-white p-6 space-y-4"
-              style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}
+              style={{ boxShadow: SHADOW_SM }}
             >
               <div className="text-[10px] uppercase tracking-widest font-semibold text-vanta-black">Your hypothetical</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -92,7 +93,7 @@ export default function WhatIfPage() {
             {hasAnyInput && (
               <div
                 className="border border-vanta-border rounded-2xl bg-white p-6"
-                style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}
+                style={{ boxShadow: SHADOW_SM }}
               >
                 <div className="flex items-center gap-2 mb-3">
                   <HelpCircle size={16} className="text-vanta-navy" />

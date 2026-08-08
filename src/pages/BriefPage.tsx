@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ScrollText, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useTransactions } from '../hooks/useTransactions';
 import { useDebts } from '../hooks/useDebts';
+import { useBusinessProfile } from '../hooks/useBusinessProfile';
 import { buildBrief, answerFollowUp, type FollowUpAnswer } from '../lib/brief';
+import { NeedsAttention } from '../components/dashboard/NeedsAttention';
 import { cn } from '../lib/utils';
 
 type FollowUpKey = 'why' | 'biggest-expense' | 'compare' | 'worry';
@@ -25,6 +27,8 @@ const FOLLOW_UPS: { key: FollowUpKey; label: string }[] = [
 export default function BriefPage() {
   const { transactions, isLoading: txLoading, loadError: txError } = useTransactions();
   const { debts, isLoading: debtsLoading } = useDebts();
+  const { profile } = useBusinessProfile();
+  const isVatRegistered = profile?.registration_status === 'registered_vat';
   const [activeAnswers, setActiveAnswers] = useState<FollowUpAnswer[]>([]);
   const isLoading = txLoading || debtsLoading;
 
@@ -44,41 +48,31 @@ export default function BriefPage() {
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
-          className="inline-flex items-center gap-2 text-vanta-navy mb-8"
+          className="mb-10"
         >
-          <ScrollText size={16} />
-          <span className="text-[11px] font-semibold uppercase tracking-[0.08em]">Vanta Brief</span>
+          <h1 className="text-[32px] font-semibold tracking-tight text-vanta-black mb-2 leading-tight">Vanta Brief</h1>
+          <p className="text-[14px] text-vanta-gray">A simple view of how your business is doing.</p>
         </motion.div>
 
         {isLoading ? (
           <div className="space-y-3" aria-busy="true">
-            <div className="h-9 w-64 rounded-md bg-vanta-sidebar animate-pulse" />
-            <div className="h-5 w-full max-w-md rounded-md bg-vanta-sidebar animate-pulse mt-6" />
+            <div className="h-8 w-full max-w-md rounded-md bg-vanta-sidebar animate-pulse" />
             <div className="h-5 w-5/6 rounded-md bg-vanta-sidebar animate-pulse" />
           </div>
         ) : txError ? (
           <p className="text-vanta-gray text-sm">Couldn't load your records: {txError}</p>
         ) : (
           <>
-            <motion.h1
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.05 }}
-              className="font-serif text-3xl md:text-4xl text-vanta-black leading-tight mb-8"
-            >
-              Your business this week
-            </motion.h1>
-
-            <div className="space-y-4 mb-10">
+            <div className="space-y-3 mb-8">
               {brief.lines.map((line, i) => (
                 <motion.p
                   key={line}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.12 + i * 0.08 }}
+                  transition={{ duration: 0.4, delay: 0.08 + i * 0.06 }}
                   className={cn(
                     'leading-relaxed text-vanta-black',
-                    i === 0 ? 'text-xl md:text-2xl font-serif' : 'text-base md:text-lg text-vanta-gray',
+                    i === 0 ? 'text-xl md:text-2xl font-semibold' : 'text-[15px] md:text-base text-vanta-gray',
                   )}
                 >
                   {line}
@@ -88,10 +82,20 @@ export default function BriefPage() {
 
             {brief.hasEnoughData && (
               <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.24 }}
+                className="mb-8"
+              >
+                <NeedsAttention transactions={transactions} debts={debts} isVatRegistered={isVatRegistered} />
+              </motion.div>
+            )}
+
+            {brief.hasEnoughData && (
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.4, delay: 0.4 }}
-                className="pt-8 border-t border-vanta-border"
               >
                 <div className="text-[11px] uppercase tracking-[0.08em] text-vanta-gray-light font-medium mb-3">
                   Ask Vanta

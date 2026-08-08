@@ -1,6 +1,7 @@
 import { AlertTriangle, Truck } from 'lucide-react';
 import { useTransactions } from '../hooks/useTransactions';
 import { computeSupplierSummaries } from '../lib/suppliers';
+import { SHADOW_SM } from '../lib/surfaces';
 
 const fmt = (n: number) => `R${n.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -26,11 +27,11 @@ export default function SuppliersPage() {
     <div className="relative flex-1 overflow-y-auto pt-12 px-6 md:px-12 lg:px-16 pb-32">
       <div className="relative max-w-6xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-serif text-vanta-black tracking-tight">Suppliers</h1>
-          <p className="text-sm text-vanta-gray mt-1">What you've spent with each supplier you've mentioned</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-vanta-black">Suppliers</h1>
+          <p className="text-sm text-vanta-gray mt-1">What you've spent with each supplier you've mentioned.</p>
         </div>
 
-        <div className="border border-vanta-border rounded-2xl overflow-hidden bg-white" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+        <div className="border border-vanta-border rounded-2xl overflow-hidden bg-white" style={{ boxShadow: SHADOW_SM }}>
           {isLoading ? (
             <div className="text-center py-16 text-vanta-gray text-sm italic">Loading…</div>
           ) : loadError ? (
@@ -41,8 +42,9 @@ export default function SuppliersPage() {
           ) : suppliers.length === 0 ? (
             <div className="text-center py-20 text-vanta-gray text-sm px-6 leading-relaxed flex flex-col items-center gap-3">
               <Truck size={20} className="text-vanta-gray-light" />
-              No suppliers recorded yet — mention who you bought from in chat (e.g. "bought flour from Sipho's Wholesale,
-              R300") and they'll show up here.
+              <span>
+                <span className="text-vanta-black font-medium">No suppliers yet.</span> Mention who you bought from in chat (e.g. "bought flour from Sipho's Wholesale, R300") and they'll show up here.
+              </span>
             </div>
           ) : (
             <div className="divide-y divide-vanta-border/60">

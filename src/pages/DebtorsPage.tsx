@@ -3,6 +3,7 @@ import { Plus, AlertTriangle, Check, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDebts, type Debt } from '../hooks/useDebts';
 import AddDebtModal from '../components/AddDebtModal';
+import { SHADOW_SM } from '../lib/surfaces';
 
 const fmt = (n: number) => n.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -26,7 +27,7 @@ function DebtSection({ title, totalLabel, debts, onSettle, onDelete }: DebtSecti
   const total = debts.reduce((sum, d) => sum + (d.amount ?? 0), 0);
 
   return (
-    <div className="border border-vanta-border rounded-2xl overflow-hidden bg-white" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+    <div className="border border-vanta-border rounded-2xl overflow-hidden bg-white" style={{ boxShadow: SHADOW_SM }}>
       <div className="flex items-center justify-between px-6 py-5 border-b border-vanta-border">
         <div>
           <h2 className="text-sm font-semibold text-vanta-black">{title}</h2>
@@ -50,7 +51,7 @@ function DebtSection({ title, totalLabel, debts, onSettle, onDelete }: DebtSecti
             return (
             <div
               key={d.id}
-              className={`flex items-center justify-between gap-4 px-6 py-4 ${isOverdue ? 'border-l-2 border-l-vanta-black' : ''}`}
+              className={`flex items-center justify-between gap-4 px-6 py-4 ${isOverdue ? 'border-l-2 border-l-vanta-warning' : ''}`}
             >
               <div className="min-w-0">
                 <div className="text-sm font-medium text-vanta-black truncate">{d.party_name || 'Unknown'}</div>
@@ -58,7 +59,7 @@ function DebtSection({ title, totalLabel, debts, onSettle, onDelete }: DebtSecti
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className="text-[10px] uppercase tracking-widest text-vanta-gray-light">{ageLabel(d.created_at)}</span>
                   {isOverdue && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-vanta-black">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-widest text-vanta-warning">
                       <AlertTriangle size={10} />
                       30+ days
                     </span>
@@ -129,14 +130,14 @@ export default function DebtorsPage() {
       <div className="relative max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-6">
           <div>
-            <h1 className="text-2xl font-serif text-vanta-black tracking-tight">Debtors & Creditors</h1>
-            <p className="text-sm text-vanta-gray mt-1">Who owes you, and who you owe</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-vanta-black">Debtors & Creditors</h1>
+            <p className="text-sm text-vanta-gray mt-1">Who owes you, and who you owe.</p>
           </div>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="text-white px-5 py-2.5 text-xs font-semibold transition-all flex items-center gap-2 rounded-lg active:scale-[0.98] bg-vanta-navy hover:bg-vanta-navy-dark shadow-[0_6px_18px_-6px_rgba(1,90,234,0.45)] hover:shadow-[0_8px_22px_-6px_rgba(1,90,234,0.55)] hover:-translate-y-0.5"
+            className="text-white px-4 py-2.5 text-[13px] font-medium transition-colors duration-150 flex items-center gap-1.5 rounded-lg active:scale-[0.98] bg-vanta-navy hover:bg-vanta-navy-dark"
           >
-            <Plus size={16} />
+            <Plus size={15} />
             Add debtor / creditor
           </button>
         </div>
@@ -149,8 +150,9 @@ export default function DebtorsPage() {
             Couldn't load debtors & creditors: {loadError}
           </div>
         ) : debts.length === 0 ? (
-          <div className="text-center py-20 text-vanta-gray text-sm px-6 leading-relaxed border border-vanta-border rounded-2xl bg-white">
-            Debtors and creditors you mention in chat (like "Thabo owes me R200") or add manually will show up here.
+          <div className="text-center py-20 text-sm px-6 leading-relaxed border border-vanta-border rounded-2xl bg-white">
+            <span className="text-vanta-black font-medium">No debtors or creditors yet.</span>{' '}
+            <span className="text-vanta-gray">Mention one in chat (like "Thabo owes me R200") or add one manually.</span>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

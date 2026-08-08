@@ -2,6 +2,7 @@ import { AlertTriangle, TrendingUp } from 'lucide-react';
 import { useTransactions } from '../hooks/useTransactions';
 import { useDebts } from '../hooks/useDebts';
 import { computeCashflowForecast } from '../lib/forecast';
+import { SHADOW_SM } from '../lib/surfaces';
 
 const fmt = (n: number) => `R${Math.round(Math.abs(n)).toLocaleString('en-ZA')}`;
 
@@ -27,7 +28,7 @@ export default function ForecastPage() {
     <div className="relative flex-1 overflow-y-auto pt-12 px-6 md:px-12 lg:px-16 pb-32">
       <div className="relative max-w-6xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-serif text-vanta-black tracking-tight">Cashflow Forecast</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-vanta-black">Cashflow Forecast</h1>
           <p className="text-sm text-vanta-gray mt-1">An estimate for the next 7 days, based on your recent pattern</p>
         </div>
 
@@ -47,7 +48,7 @@ export default function ForecastPage() {
           <div className="space-y-6">
             <div
               className="border border-vanta-border rounded-2xl bg-white p-6"
-              style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}
+              style={{ boxShadow: SHADOW_SM }}
             >
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp size={16} className="text-vanta-navy" />
@@ -69,7 +70,7 @@ export default function ForecastPage() {
 
             <div
               className="border border-vanta-border rounded-2xl bg-white p-6"
-              style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}
+              style={{ boxShadow: SHADOW_SM }}
             >
               <div className="text-[10px] uppercase tracking-widest font-semibold text-vanta-black mb-4">Breakdown</div>
               <div className="space-y-3 text-sm font-mono">
@@ -99,7 +100,7 @@ export default function ForecastPage() {
             </div>
 
             {forecast.recurringExpense && (
-              <div className="border border-vanta-border rounded-2xl bg-white p-6" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+              <div className="border border-vanta-border rounded-2xl bg-white p-6" style={{ boxShadow: SHADOW_SM }}>
                 <div className="text-[10px] uppercase tracking-widest font-semibold text-vanta-black mb-2">Recurring expense detected</div>
                 <p className="text-sm text-vanta-black leading-relaxed">
                   "{forecast.recurringExpense.description}" — roughly{' '}

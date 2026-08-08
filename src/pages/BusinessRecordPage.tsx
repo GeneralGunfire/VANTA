@@ -2,6 +2,7 @@ import { AlertTriangle, FileCheck } from 'lucide-react';
 import { useTransactions } from '../hooks/useTransactions';
 import { useDebts } from '../hooks/useDebts';
 import { computeBusinessRecord } from '../lib/businessRecord';
+import { SHADOW_SM } from '../lib/surfaces';
 
 const fmt = (n: number) => `R${Math.round(n).toLocaleString('en-ZA')}`;
 
@@ -24,7 +25,7 @@ export default function BusinessRecordPage() {
     <div className="relative flex-1 overflow-y-auto pt-12 px-6 md:px-12 lg:px-16 pb-32">
       <div className="relative max-w-6xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-serif text-vanta-black tracking-tight">Business Record</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-vanta-black">Business Record</h1>
           <p className="text-sm text-vanta-gray mt-1">A plain snapshot of what you've recorded — no score, just facts</p>
         </div>
 
@@ -42,7 +43,7 @@ export default function BusinessRecordPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="border border-vanta-border rounded-2xl bg-white p-5 sm:col-span-2" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+            <div className="border border-vanta-border rounded-2xl bg-white p-5 sm:col-span-2" style={{ boxShadow: SHADOW_SM }}>
               <div className="text-[11px] uppercase tracking-widest text-vanta-gray-light mb-1.5">Recording since</div>
               <div className="text-2xl font-mono font-semibold text-vanta-black">
                 {new Date(record.recordingSince!).toLocaleDateString('en-ZA', { year: 'numeric', month: 'long' })}
@@ -52,17 +53,17 @@ export default function BusinessRecordPage() {
               </div>
             </div>
 
-            <div className="border border-vanta-border rounded-2xl bg-white p-5" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+            <div className="border border-vanta-border rounded-2xl bg-white p-5" style={{ boxShadow: SHADOW_SM }}>
               <div className="text-[11px] uppercase tracking-widest text-vanta-gray-light mb-1.5">Total recorded revenue</div>
               <div className="text-2xl font-mono font-semibold text-vanta-black">{fmt(record.totalRevenue)}</div>
             </div>
 
-            <div className="border border-vanta-border rounded-2xl bg-white p-5" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+            <div className="border border-vanta-border rounded-2xl bg-white p-5" style={{ boxShadow: SHADOW_SM }}>
               <div className="text-[11px] uppercase tracking-widest text-vanta-gray-light mb-1.5">Average monthly revenue</div>
               <div className="text-2xl font-mono font-semibold text-vanta-black">{fmt(record.avgMonthlyRevenue)}</div>
             </div>
 
-            <div className="border border-vanta-border rounded-2xl bg-white p-5" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+            <div className="border border-vanta-border rounded-2xl bg-white p-5" style={{ boxShadow: SHADOW_SM }}>
               <div className="text-[11px] uppercase tracking-widest text-vanta-gray-light mb-1.5">Records maintained</div>
               <div className="text-2xl font-mono font-semibold text-vanta-black">
                 {record.monthsWithActivity}<span className="text-vanta-gray-light text-lg"> / {record.monthsChecked}</span>
@@ -70,12 +71,12 @@ export default function BusinessRecordPage() {
               <div className="text-xs text-vanta-gray mt-1">months with activity</div>
             </div>
 
-            <div className="border border-vanta-border rounded-2xl bg-white p-5" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+            <div className="border border-vanta-border rounded-2xl bg-white p-5" style={{ boxShadow: SHADOW_SM }}>
               <div className="text-[11px] uppercase tracking-widest text-vanta-gray-light mb-1.5">Owed to the business</div>
               <div className="text-2xl font-mono font-semibold text-vanta-black">{fmt(record.outstandingOwedToBusiness)}</div>
             </div>
 
-            <div className="border border-vanta-border rounded-2xl bg-white p-5" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+            <div className="border border-vanta-border rounded-2xl bg-white p-5" style={{ boxShadow: SHADOW_SM }}>
               <div className="text-[11px] uppercase tracking-widest text-vanta-gray-light mb-1.5">Owed by the business</div>
               <div className="text-2xl font-mono font-semibold text-vanta-black">{fmt(record.outstandingOwedByBusiness)}</div>
             </div>

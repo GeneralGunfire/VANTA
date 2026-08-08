@@ -3,6 +3,7 @@ import { Upload, AlertTriangle, Download, Trash2, FolderLock } from 'lucide-reac
 import { toast } from 'sonner';
 import { useDocuments, type DocumentCategory, type VaultDocument } from '../hooks/useDocuments';
 import { cn } from '../lib/utils';
+import { SHADOW_SM } from '../lib/surfaces';
 
 const CATEGORIES: { value: DocumentCategory | null; label: string }[] = [
   { value: null, label: 'Uncategorized' },
@@ -57,12 +58,12 @@ export default function DocumentsPage() {
       <div className="relative max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-6">
           <div>
-            <h1 className="text-2xl font-serif text-vanta-black tracking-tight">Document Vault</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-vanta-black">Document Vault</h1>
             <p className="text-sm text-vanta-gray mt-1">Receipts, invoices, and business documents in one place</p>
           </div>
         </div>
 
-        <div className="border border-vanta-border rounded-2xl bg-white p-6 space-y-4" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+        <div className="border border-vanta-border rounded-2xl bg-white p-6 space-y-4" style={{ boxShadow: SHADOW_SM }}>
           <div className="text-[10px] uppercase tracking-widest font-semibold text-vanta-black">Upload a document</div>
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-1.5 bg-vanta-sidebar p-1.5 border border-vanta-border rounded-full text-xs">
@@ -85,7 +86,7 @@ export default function DocumentsPage() {
 
             <label
               className={cn(
-                'text-white px-5 py-2.5 text-xs font-semibold transition-all flex items-center gap-2 rounded-lg cursor-pointer active:scale-[0.98] bg-vanta-navy hover:bg-vanta-navy-dark shadow-[0_6px_18px_-6px_rgba(1,90,234,0.45)] hover:shadow-[0_8px_22px_-6px_rgba(1,90,234,0.55)] hover:-translate-y-0.5',
+                'text-white px-4 py-2.5 text-[13px] font-medium transition-colors duration-150 flex items-center gap-1.5 rounded-lg cursor-pointer active:scale-[0.98] bg-vanta-navy hover:bg-vanta-navy-dark',
                 isUploading && 'opacity-60 pointer-events-none',
               )}
             >
@@ -104,7 +105,7 @@ export default function DocumentsPage() {
           <p className="text-xs text-vanta-gray">Images and PDFs only.</p>
         </div>
 
-        <div className="border border-vanta-border rounded-2xl overflow-hidden bg-white" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+        <div className="border border-vanta-border rounded-2xl overflow-hidden bg-white" style={{ boxShadow: SHADOW_SM }}>
           {isLoading ? (
             <div className="text-center py-16 text-vanta-gray text-sm italic">Loading…</div>
           ) : loadError ? (

@@ -61,7 +61,7 @@ export default function BusinessProfilePage() {
     <div className="relative flex-1 overflow-y-auto pt-12 px-6 md:px-12 lg:px-16 pb-32">
       <div className="relative max-w-6xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-serif text-vanta-black tracking-tight">Business Profile</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-vanta-black">Business Profile</h1>
           <p className="text-sm text-vanta-gray mt-1">Your business's own details — used across Vanta, including the Tax Calendar</p>
         </div>
 
@@ -73,7 +73,7 @@ export default function BusinessProfilePage() {
             Couldn't load your business profile: {loadError}
           </div>
         ) : (
-          <div className="border border-vanta-border rounded-2xl bg-white p-6 space-y-6" style={{ boxShadow: '0 1px 2px rgba(17,24,39,0.03), 0 10px 30px rgba(17,24,39,0.05)' }}>
+          <div className="border border-vanta-border rounded-2xl bg-white p-6 space-y-6" style={{ boxShadow: SHADOW_SM }}>
             <div className="flex items-start gap-3">
               <div className="w-9 h-9 rounded-lg bg-vanta-navy text-white flex items-center justify-center shrink-0">
                 <Building2 size={16} />

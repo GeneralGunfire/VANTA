@@ -59,7 +59,7 @@ export default function Modal({ isOpen, onClose, title, eyebrow, icon, maxWidth 
                   {eyebrow && (
                     <p className="text-[10px] uppercase tracking-widest text-vanta-gray font-semibold mb-0.5">{eyebrow}</p>
                   )}
-                  <h3 className="font-serif font-semibold text-lg text-vanta-black leading-tight">{title}</h3>
+                  <h3 className="font-semibold text-lg text-vanta-black leading-tight">{title}</h3>
                 </div>
               </div>
               <button

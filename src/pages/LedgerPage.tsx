@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Search, AlertTriangle, ArrowUpDown } from 'lucide-react';
+import { Plus, Search, AlertTriangle, ArrowUpDown, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import {
   useReactTable,
@@ -123,17 +123,13 @@ export default function LedgerPage() {
 
   const columns = useMemo(
     () => [
-      columnHelper.accessor('month', {
-        header: 'Month',
-        cell: (info) => <span className="text-vanta-gray">{info.getValue()}</span>,
-      }),
       columnHelper.accessor('date', {
         header: 'Date',
-        cell: (info) => <span className="text-vanta-gray font-mono">{info.getValue()}</span>,
+        cell: (info) => <span className="text-vanta-gray font-mono text-[12px]">{info.getValue()}</span>,
       }),
       columnHelper.display({
         id: 'description',
-        header: 'What happened',
+        header: 'Description',
         cell: ({ row }) => (
           <span className="text-vanta-black font-medium">
             {row.original.tx.description || row.original.tx.raw_input || '—'}
@@ -146,29 +142,13 @@ export default function LedgerPage() {
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
             <span className="text-vanta-gray">{row.original.tx.category}</span>
-            {row.original.tx.needs_review ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-vanta-black text-vanta-black text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
+            {row.original.tx.needs_review && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-vanta-warning/40 text-vanta-warning text-[10px] font-medium uppercase tracking-wide whitespace-nowrap">
                 <AlertTriangle size={10} />
                 Review
               </span>
-            ) : (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-vanta-success-tint text-vanta-success text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
-                Confirmed
-              </span>
             )}
           </div>
-        ),
-      }),
-      columnHelper.accessor('accountType', {
-        header: 'Type',
-        cell: (info) => <span className="text-vanta-gray">{info.getValue()}</span>,
-      }),
-      columnHelper.accessor('moneyOut', {
-        header: 'Money out',
-        cell: (info) => (
-          <span className="text-right font-mono text-vanta-black block">
-            {info.getValue() > 0 ? `R${fmt(info.getValue())}` : '—'}
-          </span>
         ),
       }),
       columnHelper.accessor('moneyIn', {
@@ -179,8 +159,16 @@ export default function LedgerPage() {
           </span>
         ),
       }),
+      columnHelper.accessor('moneyOut', {
+        header: 'Money out',
+        cell: (info) => (
+          <span className="text-right font-mono text-vanta-black block">
+            {info.getValue() > 0 ? `R${fmt(info.getValue())}` : '—'}
+          </span>
+        ),
+      }),
       columnHelper.accessor('total', {
-        header: 'Total so far',
+        header: 'Balance',
         cell: (info) => (
           <span className="text-right font-mono font-semibold text-vanta-black block">R{fmt(info.getValue())}</span>
         ),
@@ -211,15 +199,15 @@ export default function LedgerPage() {
       <div className="relative max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-6">
           <div>
-            <h1 className="text-2xl font-serif text-vanta-black tracking-tight">Ledger</h1>
-            <p className="text-sm text-vanta-gray mt-1">Every sale and expense you've recorded</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-vanta-black">Ledger</h1>
+            <p className="text-sm text-vanta-gray mt-1">Your recorded business activity.</p>
           </div>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="text-white px-5 py-2.5 text-xs font-semibold transition-all flex items-center gap-2 rounded-lg active:scale-[0.98] bg-vanta-navy hover:bg-vanta-navy-dark shadow-[0_6px_18px_-6px_rgba(1,90,234,0.45)] hover:shadow-[0_8px_22px_-6px_rgba(1,90,234,0.55)] hover:-translate-y-0.5"
+            className="text-white px-4 py-2.5 text-[13px] font-medium transition-colors duration-150 flex items-center gap-1.5 rounded-lg active:scale-[0.98] bg-vanta-navy hover:bg-vanta-navy-dark"
           >
-            <Plus size={16} />
-            Add Transaction
+            <Plus size={15} />
+            Add transaction
           </button>
         </div>
 
@@ -239,7 +227,7 @@ export default function LedgerPage() {
           */}
           <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 px-6 py-5 border-b border-vanta-border">
             <div className="min-w-0">
-              <div className="text-[15px] font-serif text-vanta-black">Vanta Books</div>
+              <div className="text-[15px] font-semibold text-vanta-black">Vanta Books</div>
               <div className="mt-1 text-[12px] text-vanta-gray flex flex-wrap items-center gap-x-1.5">
                 <span>Operating Account</span>
                 <span aria-hidden="true">·</span>
@@ -308,8 +296,18 @@ export default function LedgerPage() {
               Couldn't load transactions: {loadError}
             </div>
           ) : transactions.length === 0 ? (
-            <div className="text-center py-20 text-vanta-gray text-sm px-6 leading-relaxed">
-              Your ledger will show up here as you tell Vanta what's happening in your business — try the chat to add your first one.
+            <div className="text-center py-20 px-6">
+              <p className="text-[15px] font-medium text-vanta-black mb-1.5">Your books are quiet.</p>
+              <p className="text-sm text-vanta-gray leading-relaxed mb-5">
+                Tell Vanta what happened in your business to start recording activity.
+              </p>
+              <button
+                onClick={() => navigate('/app/chat')}
+                className="inline-flex items-center gap-1.5 text-[13px] font-medium text-vanta-navy hover:text-vanta-navy-dark transition-colors"
+              >
+                Tell Vanta what happened
+                <ArrowRight size={14} />
+              </button>
             </div>
           ) : ledgerRows.length === 0 ? (
             <div className="text-center py-20 text-vanta-gray text-sm">No transactions match your search.</div>
@@ -364,11 +362,11 @@ export default function LedgerPage() {
                 </TableBody>
                 <TableFooter className="bg-vanta-sidebar font-semibold">
                   <TableRow className="hover:bg-vanta-sidebar">
-                    <TableCell colSpan={5} className="px-4 py-3 text-right text-vanta-gray uppercase tracking-wider text-[10px]">
+                    <TableCell colSpan={3} className="px-4 py-3 text-right text-vanta-gray uppercase tracking-wider text-[10px]">
                       Totals
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(totalMoneyOut)}</TableCell>
                     <TableCell className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(totalMoneyIn)}</TableCell>
+                    <TableCell className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(totalMoneyOut)}</TableCell>
                     <TableCell className="px-4 py-3 text-right font-mono text-vanta-black">R{fmt(endingTotal)}</TableCell>
                   </TableRow>
                 </TableFooter>
