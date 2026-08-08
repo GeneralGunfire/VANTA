@@ -151,7 +151,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden bg-white text-vanta-black font-sans antialiased selection:bg-vanta-navy selection:text-white [text-rendering:optimizeLegibility]">
+    <div className="relative min-h-screen w-full bg-white text-vanta-black font-sans antialiased selection:bg-vanta-navy selection:text-white [text-rendering:optimizeLegibility]">
       <div className="sticky top-0 z-50 px-4 pt-4 md:px-6">
         <header className="max-w-5xl mx-auto rounded-full border border-vanta-border bg-white/90 backdrop-blur-xl shadow-[0_4px_16px_-10px_rgba(17,24,39,0.15)]">
           <div className="px-3.5 md:px-5 py-2 flex items-center justify-between">
@@ -439,7 +439,7 @@ export default function LandingPage() {
 
           <FeaturePanel eyebrow="Ask anything" heading="Get a real answer, with the numbers behind it." delay={0.08}>
             <div className="p-5">
-              <div className="text-[12px] text-vanta-gray-light mb-2">How am I doing this month?</div>
+              <div className="text-[12px] text-vanta-gray mb-2">How am I doing this month?</div>
               <p className="text-[15px] font-medium text-vanta-black leading-relaxed">You've made R8,420 in sales this month — R1,180 more than last month.</p>
               <p className="text-[12px] text-vanta-gray mt-2">Based on 31 confirmed transactions this month.</p>
             </div>
@@ -555,7 +555,7 @@ export default function LandingPage() {
               transition={{ duration: 0.4, delay: i * 0.05 }}
               className="grid grid-cols-[3rem_1fr] md:grid-cols-[4rem_1fr_1fr] gap-x-4 gap-y-2 py-7 border-t border-vanta-border"
             >
-              <div className="text-2xl text-vanta-border font-semibold">
+              <div className="text-2xl text-vanta-gray font-semibold">
                 {String(i + 1).padStart(2, '0')}
               </div>
               <div className="font-semibold text-vanta-black text-base md:col-start-2">{item.q}</div>

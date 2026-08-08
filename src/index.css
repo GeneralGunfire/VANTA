@@ -130,12 +130,14 @@
 
 @layer base {
   html {
-    overflow-x: hidden;
+    /* clip, not hidden — suppresses horizontal overflow without creating a
+       scroll container, which is what was breaking position:sticky headers. */
+    overflow-x: clip;
   }
 
   body {
     @apply font-sans text-vanta-black bg-vanta-bg antialiased;
-    overflow-x: hidden;
+    overflow-x: clip;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
